@@ -13,6 +13,7 @@
     "test": "NODE_ENV=test bun run src/server/database/cli.ts up && NODE_ENV=test bun test src",
     "test:setup": "NODE_ENV=test bun run src/server/test-utils/bootstrap.ts",
     "test:file": "NODE_ENV=test bun run src/server/database/cli.ts up && NODE_ENV=test bun test",
+    "test:coverage": "NODE_ENV=test bun run src/server/database/cli.ts up && NODE_ENV=test bun test src --coverage",
     "commit": "git add --all && git commit",
     "lint": "bunx @biomejs/biome@beta check src",
     "lint:write": "bunx @biomejs/biome@beta check src --write",
