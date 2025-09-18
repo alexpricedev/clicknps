@@ -1,28 +1,37 @@
-import { beforeEach, describe, expect, mock, test } from "bun:test";
+import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
 import { SQL } from "bun";
-import { cleanupTestData } from "../../test-utils/helpers";
+import { cleanupTestData, randomEmail } from "../../test-utils/helpers";
 
 if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL is required for tests");
 }
-const testDb = new SQL(process.env.DATABASE_URL);
+const connection = new SQL(process.env.DATABASE_URL);
+
 mock.module("../../services/database", () => ({
-  db: testDb,
+  get db() {
+    return connection;
+  },
 }));
 
-import { createMagicLink } from "../../services/auth";
+import { createSignUpMagicLink } from "../../services/auth";
+import { db } from "../../services/database";
 import { callback } from "./callback";
-
-const db = testDb;
 
 describe("Callback Controller", () => {
   beforeEach(async () => {
-    await cleanupTestData(testDb);
+    await cleanupTestData(db);
+  });
+
+  afterAll(async () => {
+    await connection.end();
   });
 
   describe("GET /auth/callback", () => {
     test("successfully verifies valid magic link token", async () => {
-      const { rawToken } = await createMagicLink("test@example.com");
+      const { rawToken } = await createSignUpMagicLink(
+        randomEmail(),
+        "Test Business",
+      );
 
       const request = new Request(
         `http://localhost:3000/auth/callback?token=${rawToken}`,
@@ -43,7 +52,10 @@ describe("Callback Controller", () => {
     });
 
     test("marks token as used after successful verification", async () => {
-      const { user, rawToken } = await createMagicLink("used@example.com");
+      const { user, rawToken } = await createSignUpMagicLink(
+        randomEmail(),
+        "Test Business",
+      );
 
       await callback.index(
         new Request(`http://localhost:3000/auth/callback?token=${rawToken}`),
@@ -59,7 +71,10 @@ describe("Callback Controller", () => {
     });
 
     test("creates valid session after token verification", async () => {
-      const { user, rawToken } = await createMagicLink("session@example.com");
+      const { user, rawToken } = await createSignUpMagicLink(
+        randomEmail(),
+        "Test Business",
+      );
 
       const response = await callback.index(
         new Request(`http://localhost:3000/auth/callback?token=${rawToken}`),
@@ -124,7 +139,10 @@ describe("Callback Controller", () => {
     });
 
     test("redirects with error for already used token", async () => {
-      const { rawToken } = await createMagicLink("reuse@example.com");
+      const { rawToken } = await createSignUpMagicLink(
+        randomEmail(),
+        "Test Business",
+      );
 
       await callback.index(
         new Request(`http://localhost:3000/auth/callback?token=${rawToken}`),
@@ -144,7 +162,10 @@ describe("Callback Controller", () => {
     });
 
     test("redirects with error for expired token", async () => {
-      const { user, rawToken } = await createMagicLink("expired@example.com");
+      const { user, rawToken } = await createSignUpMagicLink(
+        randomEmail(),
+        "Test Business",
+      );
 
       await db`
         UPDATE user_tokens 
@@ -164,7 +185,10 @@ describe("Callback Controller", () => {
     });
 
     test("handles database errors gracefully", async () => {
-      const { user, rawToken } = await createMagicLink("deleted@example.com");
+      const { user, rawToken } = await createSignUpMagicLink(
+        randomEmail(),
+        "Test Business",
+      );
 
       await db`DELETE FROM users WHERE id = ${user.id}`;
 

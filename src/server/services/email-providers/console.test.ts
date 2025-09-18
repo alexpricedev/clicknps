@@ -1,6 +1,6 @@
-import { describe, it, expect, spyOn, beforeEach, afterEach } from "bun:test";
-import { ConsoleLogProvider } from "./console";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import type { EmailMessage } from "../email";
+import { ConsoleLogProvider } from "./console";
 
 describe("ConsoleLogProvider", () => {
   let provider: ConsoleLogProvider;
@@ -29,14 +29,14 @@ describe("ConsoleLogProvider", () => {
         from: { name: "Test App", email: "test@app.com" },
         subject: "Test Subject",
         html: "<h1>Hello World</h1>",
-        text: "Hello World"
+        text: "Hello World",
       };
 
       await provider.send(message);
 
       expect(consoleSpy).toHaveBeenCalledTimes(1);
       const loggedOutput = consoleSpy.mock.calls[0][0];
-      
+
       expect(loggedOutput).toContain("📧 EMAIL SEND (Console Provider)");
       expect(loggedOutput).toContain("To: John Doe <john@example.com>");
       expect(loggedOutput).toContain("From: Test App <test@app.com>");
@@ -47,19 +47,55 @@ describe("ConsoleLogProvider", () => {
       expect(loggedOutput).toContain("Hello World");
     });
 
-    it("should log email without names in to/from fields", async () => {
+    it("should log email without name in to field", async () => {
       const message: EmailMessage = {
         to: { email: "john@example.com" },
-        from: { email: "test@app.com" },
+        from: { name: "Test App", email: "test@app.com" },
         subject: "Test Subject",
-        html: "<h1>Hello World</h1>"
+        html: "<h1>Hello World</h1>",
       };
 
       await provider.send(message);
 
       expect(consoleSpy).toHaveBeenCalledTimes(1);
       const loggedOutput = consoleSpy.mock.calls[0][0];
-      
+
+      expect(loggedOutput).toContain("To: john@example.com");
+      expect(loggedOutput).toContain("From: Test App <test@app.com>");
+      expect(loggedOutput).not.toContain("<john@example.com>");
+    });
+
+    it("should log email without name in from field", async () => {
+      const message: EmailMessage = {
+        to: { name: "John Doe", email: "john@example.com" },
+        from: { email: "test@app.com" },
+        subject: "Test Subject",
+        html: "<h1>Hello World</h1>",
+      };
+
+      await provider.send(message);
+
+      expect(consoleSpy).toHaveBeenCalledTimes(1);
+      const loggedOutput = consoleSpy.mock.calls[0][0];
+
+      expect(loggedOutput).toContain("To: John Doe <john@example.com>");
+      expect(loggedOutput).toContain("From: test@app.com");
+      expect(loggedOutput).not.toContain("<test@app.com>");
+    });
+
+    it("should log email without names in both to and from fields", async () => {
+      const message: EmailMessage = {
+        to: { email: "john@example.com" },
+        from: { email: "test@app.com" },
+        subject: "Test Subject",
+        html: "<h1>Hello World</h1>",
+      };
+
+      await provider.send(message);
+
+      expect(consoleSpy).toHaveBeenCalledTimes(1);
+      const loggedOutput = consoleSpy.mock.calls[0][0];
+
       expect(loggedOutput).toContain("To: john@example.com");
       expect(loggedOutput).toContain("From: test@app.com");
       expect(loggedOutput).not.toContain("<john@example.com>");
@@ -71,14 +107,14 @@ describe("ConsoleLogProvider", () => {
         to: { name: "John Doe", email: "john@example.com" },
         from: { name: "Test App", email: "test@app.com" },
         subject: "Test Subject",
-        html: "<h1>Hello World</h1>"
+        html: "<h1>Hello World</h1>",
       };
 
       await provider.send(message);
 
       expect(consoleSpy).toHaveBeenCalledTimes(1);
       const loggedOutput = consoleSpy.mock.calls[0][0];
-      
+
       expect(loggedOutput).toContain("HTML Content:");
       expect(loggedOutput).toContain("<h1>Hello World</h1>");
       expect(loggedOutput).not.toContain("Text Content:");
@@ -90,14 +126,14 @@ describe("ConsoleLogProvider", () => {
         from: { email: "test@app.com" },
         subject: "Test Subject",
         html: "<h1>Hello World</h1>",
-        text: ""
+        text: "",
       };
 
       await provider.send(message);
 
       expect(consoleSpy).toHaveBeenCalledTimes(1);
       const loggedOutput = consoleSpy.mock.calls[0][0];
-      
+
       expect(loggedOutput).toContain("HTML Content:");
       expect(loggedOutput).not.toContain("Text Content:");
     });
@@ -107,14 +143,14 @@ describe("ConsoleLogProvider", () => {
         to: { email: "test@example.com" },
         from: { email: "sender@example.com" },
         subject: "",
-        html: ""
+        html: "",
       };
 
       await provider.send(message);
 
       expect(consoleSpy).toHaveBeenCalledTimes(1);
       const loggedOutput = consoleSpy.mock.calls[0][0];
-      
+
       expect(loggedOutput).toContain("📧 EMAIL SEND (Console Provider)");
       expect(loggedOutput).toContain("To: test@example.com");
       expect(loggedOutput).toContain("From: sender@example.com");
@@ -127,14 +163,14 @@ describe("ConsoleLogProvider", () => {
         to: { email: "test@example.com" },
         from: { email: "sender@example.com" },
         subject: "Test",
-        html: "<p>Test</p>"
+        html: "<p>Test</p>",
       };
 
       await provider.send(message);
 
       const loggedOutput = consoleSpy.mock.calls[0][0];
       const lines = loggedOutput.split("\n");
-      
+
       expect(lines[0]).toBe("📧 EMAIL SEND (Console Provider)");
       expect(lines[1]).toBe("================================");
       expect(lines[lines.length - 1]).toBe("================================");

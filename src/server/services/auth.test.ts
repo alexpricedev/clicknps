@@ -1,89 +1,109 @@
-import { beforeEach, describe, expect, mock, test } from "bun:test";
+import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
 import { SQL } from "bun";
-import { cleanupTestData } from "../test-utils/helpers";
+import { cleanupTestData, randomEmail } from "../test-utils/helpers";
 import { computeHMAC } from "../utils/crypto";
 
 if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL is required for tests");
 }
-const testDb = new SQL(process.env.DATABASE_URL);
+const connection = new SQL(process.env.DATABASE_URL);
+
 mock.module("./database", () => ({
-  db: testDb,
+  get db() {
+    return connection;
+  },
 }));
 
 import {
   clearSessionCookie,
-  createMagicLink,
   createSession,
   createSessionCookie,
+  createSignInMagicLink,
+  createSignUpMagicLink,
+  createUser,
   deleteSession,
-  findOrCreateUser,
+  findUser,
   getSession,
   getSessionIdFromCookies,
   renewSession,
   verifyMagicLink,
 } from "./auth";
-
-const db = testDb;
+import { db } from "./database";
 
 describe("Auth Service with PostgreSQL", () => {
   beforeEach(async () => {
-    await cleanupTestData(testDb);
+    await cleanupTestData(db);
   });
 
-  describe("findOrCreateUser", () => {
-    test("creates new user when email does not exist", async () => {
-      const user = await findOrCreateUser("test@example.com");
+  afterAll(async () => {
+    await connection.end();
+  });
 
-      expect(user.email).toBe("test@example.com");
+  describe("createUser", () => {
+    test("creates new user with business", async () => {
+      const email = randomEmail();
+      const user = await createUser(email, "Test Business");
+
+      expect(user.email).toBe(email);
       expect(user.id).toBeDefined();
+      expect(user.business_id).toBeDefined();
       expect(user.created_at).toBeDefined();
     });
 
-    test("returns existing user when email already exists", async () => {
-      // Create user first time
-      const user1 = await findOrCreateUser("existing@example.com");
-
-      // Try to create same user again
-      const user2 = await findOrCreateUser("existing@example.com");
-
-      expect(user1.id).toBe(user2.id);
-      expect(user1.email).toBe(user2.email);
-      expect(user1.created_at).toEqual(user2.created_at);
-    });
-
     test("normalizes email case", async () => {
-      const user1 = await findOrCreateUser("Test@Example.Com");
-      const user2 = await findOrCreateUser("test@example.com");
-
-      // Should be the same user since emails are case-insensitive
-      expect(user1.id).toBe(user2.id);
+      const email = "Test@Example.Com";
+      const user = await createUser(email, "Test Business");
+      expect(user.email).toBe(email.toLowerCase());
     });
   });
 
-  describe("createMagicLink", () => {
-    test("creates magic link for existing user", async () => {
-      const user = await findOrCreateUser("test@example.com");
-      const { user: linkUser, rawToken } =
-        await createMagicLink("test@example.com");
+  describe("findUser", () => {
+    test("returns null when user does not exist", async () => {
+      const user = await findUser("nonexistent@example.com");
+      expect(user).toBeNull();
+    });
 
-      expect(linkUser.id).toBe(user.id);
-      expect(linkUser.email).toBe(user.email);
+    test("returns existing user when email exists", async () => {
+      // Create user first
+      const createdUser = await createUser(
+        "existing@example.com",
+        "Test Business",
+      );
+
+      // Find the user
+      const foundUser = await findUser("existing@example.com");
+
+      if (!foundUser) {
+        throw new Error("User not found");
+      }
+
+      expect(foundUser).not.toBeNull();
+      expect(foundUser.id).toBe(createdUser.id);
+      expect(foundUser.email).toBe(createdUser.email);
+      expect(foundUser.business_id).toBe(createdUser.business_id);
+    });
+  });
+
+  describe("createSignUpMagicLink", () => {
+    test("creates magic link for new user with business", async () => {
+      const { user, rawToken } = await createSignUpMagicLink(
+        "new@example.com",
+        "New Business",
+      );
+
+      expect(user.email).toBe("new@example.com");
+      expect(user.id).toBeDefined();
+      expect(user.business_id).toBeDefined();
       expect(rawToken).toBeDefined();
       expect(typeof rawToken).toBe("string");
       expect(rawToken.length).toBeGreaterThan(20);
     });
 
-    test("creates magic link for new user", async () => {
-      const { user, rawToken } = await createMagicLink("new@example.com");
-
-      expect(user.email).toBe("new@example.com");
-      expect(user.id).toBeDefined();
-      expect(rawToken).toBeDefined();
-    });
-
     test("stores hashed token in database", async () => {
-      const { user } = await createMagicLink("hash@example.com");
+      const { user } = await createSignUpMagicLink(
+        "hash@example.com",
+        "Hash Business",
+      );
 
       // Verify token exists in database (hashed)
       const tokens = await db`
@@ -106,22 +126,56 @@ describe("Auth Service with PostgreSQL", () => {
     });
   });
 
+  describe("createSignInMagicLink", () => {
+    test("creates magic link for existing user", async () => {
+      const email = randomEmail();
+      const user = await createUser(email, "Test Business");
+      const result = await createSignInMagicLink(email);
+
+      expect(result).not.toBeNull();
+      if (!result) {
+        throw new Error("Result is null");
+      }
+      const { user: linkUser, rawToken } = result;
+      expect(linkUser.id).toBe(user.id);
+      expect(linkUser.email).toBe(user.email);
+      expect(linkUser.business_id).toBe(user.business_id);
+      expect(rawToken).toBeDefined();
+      expect(typeof rawToken).toBe("string");
+      expect(rawToken.length).toBeGreaterThan(20);
+    });
+
+    test("returns null for non-existent user", async () => {
+      const result = await createSignInMagicLink("nonexistent@example.com");
+      expect(result).toBeNull();
+    });
+  });
+
   describe("verifyMagicLink", () => {
     test("successfully verifies valid unused token", async () => {
-      const { user, rawToken } = await createMagicLink("verify@example.com");
+      const { user, rawToken } = await createSignUpMagicLink(
+        "verify@example.com",
+        "Verify Business",
+      );
 
       const result = await verifyMagicLink(rawToken);
 
       expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.user.id).toBe(user.id);
-        expect(result.user.email).toBe(user.email);
-        expect(result.sessionId).toBeDefined();
+      if (!result.success) {
+        throw new Error("Result is not successful");
       }
+
+      expect(result.user.id).toBe(user.id);
+      expect(result.user.email).toBe(user.email);
+      expect(result.user.business_id).toBe(user.business_id);
+      expect(result.sessionId).toBeDefined();
     });
 
     test("marks token as used after verification", async () => {
-      const { user, rawToken } = await createMagicLink("used@example.com");
+      const { user, rawToken } = await createSignUpMagicLink(
+        randomEmail(),
+        "Used Business",
+      );
 
       await verifyMagicLink(rawToken);
 
@@ -136,7 +190,10 @@ describe("Auth Service with PostgreSQL", () => {
     });
 
     test("rejects already used token", async () => {
-      const { rawToken } = await createMagicLink("reuse@example.com");
+      const { rawToken } = await createSignUpMagicLink(
+        randomEmail(),
+        "Reuse Business",
+      );
 
       // Use token once
       await verifyMagicLink(rawToken);
@@ -145,13 +202,17 @@ describe("Auth Service with PostgreSQL", () => {
       const result = await verifyMagicLink(rawToken);
 
       expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error).toBe("Invalid or expired token");
+      if (result.success) {
+        throw new Error("Result is not successful");
       }
+      expect(result.error).toBe("Invalid or expired token");
     });
 
     test("prevents race condition with simultaneous verification attempts", async () => {
-      const { rawToken } = await createMagicLink("race@example.com");
+      const { rawToken } = await createSignUpMagicLink(
+        "race@example.com",
+        "Race Business",
+      );
 
       // Attempt to verify the same token simultaneously
       const [result1, result2] = await Promise.all([
@@ -183,7 +244,10 @@ describe("Auth Service with PostgreSQL", () => {
     });
 
     test("rejects expired token", async () => {
-      const { user, rawToken } = await createMagicLink("expired@example.com");
+      const { user, rawToken } = await createSignUpMagicLink(
+        randomEmail(),
+        "Expired Business",
+      );
 
       // Manually update token to be expired
       await db`
@@ -203,7 +267,7 @@ describe("Auth Service with PostgreSQL", () => {
 
   describe("createSession", () => {
     test("creates session with UUID and expiry", async () => {
-      const user = await findOrCreateUser("session@example.com");
+      const user = await createUser(randomEmail(), "Session Business");
       const sessionId = await createSession(user.id);
 
       expect(sessionId).toBeDefined();
@@ -232,7 +296,10 @@ describe("Auth Service with PostgreSQL", () => {
 
   describe("getSession", () => {
     test("returns session and user data for valid session", async () => {
-      const user = await findOrCreateUser("getsession@example.com");
+      const user = await createUser(
+        "getsession@example.com",
+        "GetSession Business",
+      );
       const sessionId = await createSession(user.id);
 
       const result = await getSession(sessionId);
@@ -250,7 +317,10 @@ describe("Auth Service with PostgreSQL", () => {
     });
 
     test("returns null for expired session", async () => {
-      const user = await findOrCreateUser("expiredsession@example.com");
+      const user = await createUser(
+        "expiredsession@example.com",
+        "ExpiredSession Business",
+      );
       const sessionId = await createSession(user.id);
 
       // Manually expire the session
@@ -268,7 +338,10 @@ describe("Auth Service with PostgreSQL", () => {
 
   describe("deleteSession", () => {
     test("successfully deletes existing session", async () => {
-      const user = await findOrCreateUser("deletesession@example.com");
+      const user = await createUser(
+        "deletesession@example.com",
+        "DeleteSession Business",
+      );
       const sessionId = await createSession(user.id);
 
       const deleted = await deleteSession(sessionId);
@@ -336,7 +409,10 @@ describe("Auth Service with PostgreSQL", () => {
   describe("integration scenarios", () => {
     test("complete magic link auth flow", async () => {
       // Step 1: Create magic link
-      const { user, rawToken } = await createMagicLink("complete@example.com");
+      const { user, rawToken } = await createSignUpMagicLink(
+        "complete@example.com",
+        "Complete Business",
+      );
       expect(user.email).toBe("complete@example.com");
 
       // Step 2: Verify magic link
@@ -359,8 +435,14 @@ describe("Auth Service with PostgreSQL", () => {
     });
 
     test("multiple users can have separate sessions", async () => {
-      const { rawToken: token1 } = await createMagicLink("user1@example.com");
-      const { rawToken: token2 } = await createMagicLink("user2@example.com");
+      const { rawToken: token1 } = await createSignUpMagicLink(
+        "user1@example.com",
+        "User1 Business",
+      );
+      const { rawToken: token2 } = await createSignUpMagicLink(
+        "user2@example.com",
+        "User2 Business",
+      );
 
       const auth1 = await verifyMagicLink(token1);
       const auth2 = await verifyMagicLink(token2);
@@ -384,7 +466,10 @@ describe("Auth Service with PostgreSQL", () => {
   describe("HMAC security", () => {
     test("database compromise cannot enable login", async () => {
       // Create user and magic link
-      const { user, rawToken } = await createMagicLink("security@example.com");
+      const { user, rawToken } = await createSignUpMagicLink(
+        "security@example.com",
+        "Security Business",
+      );
 
       // Get the stored hash from database
       const tokens = await db`
@@ -405,7 +490,7 @@ describe("Auth Service with PostgreSQL", () => {
     });
 
     test("session renewal extends activity timestamp", async () => {
-      const user = await findOrCreateUser("renewal@example.com");
+      const user = await createUser("renewal@example.com", "Renewal Business");
       const sessionId = await createSession(user.id);
 
       // Get initial activity timestamp
@@ -444,7 +529,7 @@ describe("Auth Service with PostgreSQL", () => {
     });
 
     test("session lookup uses HMAC not raw ID", async () => {
-      const user = await findOrCreateUser("hmac@example.com");
+      const user = await createUser("hmac@example.com", "HMAC Business");
       const rawSessionId = await createSession(user.id);
 
       // Verify raw session ID cannot be found directly in database
@@ -467,7 +552,10 @@ describe("Auth Service with PostgreSQL", () => {
     });
 
     test("race condition with HMAC still works atomically", async () => {
-      const { rawToken } = await createMagicLink("hmacrace@example.com");
+      const { rawToken } = await createSignUpMagicLink(
+        "hmacrace@example.com",
+        "HMACRace Business",
+      );
 
       // Attempt to verify the same token simultaneously
       const [result1, result2] = await Promise.all([

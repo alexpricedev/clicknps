@@ -1,5 +1,5 @@
 import { redirectIfAuthenticated } from "../../middleware/auth";
-import { createMagicLink } from "../../services/auth";
+import { createSignInMagicLink } from "../../services/auth";
 import { getEmailService } from "../../services/email";
 import type { LoginState } from "../../templates/login";
 import { Login } from "../../templates/login";
@@ -33,9 +33,19 @@ export const login = {
     }
 
     try {
-      const { user, rawToken } = await createMagicLink(
-        email.toLowerCase().trim(),
-      );
+      const result = await createSignInMagicLink(email.toLowerCase().trim());
+
+      if (!result) {
+        return redirect(
+          redirectWithState("/login", {
+            state: "validation-error",
+            error:
+              "No account found with this email address. Please sign up first.",
+          }),
+        );
+      }
+
+      const { user, rawToken } = result;
 
       const url = new URL(req.url);
       const magicLinkUrl = `${url.protocol}//${url.host}/auth/callback?token=${rawToken}`;

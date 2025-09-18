@@ -9,6 +9,7 @@ import { db } from "./database";
 export interface User {
   id: string;
   email: string;
+  business_id: string;
   created_at: Date;
 }
 
@@ -38,6 +39,7 @@ interface SessionQueryResult {
   session_created_at: string;
   user_id_result: string;
   email: string;
+  business_id: string;
   user_created_at: string;
 }
 
@@ -46,43 +48,90 @@ export type AuthResult =
   | { success: false; error: string };
 
 /**
- * Create or get existing user by email
+ * Find existing user by email for sign-in
  * Normalizes email to lowercase for consistent lookups
  */
-export const findOrCreateUser = async (email: string): Promise<User> => {
+export const findUser = async (email: string): Promise<User | null> => {
   const normalizedEmail = email.toLowerCase().trim();
 
-  // First try to find existing user
   const existing = await db`
-    SELECT id, email, created_at 
+    SELECT id, email, business_id, created_at 
     FROM users 
     WHERE email = ${normalizedEmail}
   `;
 
-  if (existing.length > 0) {
-    return existing[0] as User;
-  }
+  return existing.length > 0 ? (existing[0] as User) : null;
+};
 
-  // Create new user if not found
+/**
+ * Create new user with business for sign-up
+ * Requires businessName since every user must have a business
+ */
+export const createUser = async (
+  email: string,
+  businessName: string,
+): Promise<User> => {
+  const normalizedEmail = email.toLowerCase().trim();
+
+  // Create new business first
+  const businessId = randomUUID();
+
+  await db`
+    INSERT INTO businesses (id, business_name) 
+    VALUES (${businessId}, ${businessName})
+  `;
+
+  // Create new user with business_id
   const userId = randomUUID();
   const newUser = await db`
-    INSERT INTO users (id, email) 
-    VALUES (${userId}, ${normalizedEmail}) 
-    RETURNING id, email, created_at
+    INSERT INTO users (id, email, business_id) 
+    VALUES (${userId}, ${normalizedEmail}, ${businessId}) 
+    RETURNING id, email, business_id, created_at
   `;
 
   return newUser[0] as User;
 };
 
 /**
- * Create a magic link token for a user
- * Generates cryptographically secure token, hashes with HMAC-SHA256, stores in database
- * Token expires in 15 minutes for security
+ * Create a magic link token for sign-up
+ * Creates new user and business, generates magic link
  */
-export const createMagicLink = async (
+export const createSignUpMagicLink = async (
   email: string,
+  businessName: string,
 ): Promise<{ user: User; rawToken: string }> => {
-  const user = await findOrCreateUser(email);
+  const user = await createUser(email, businessName);
+
+  const rawToken = generateSecureToken(32);
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+  const tokenHashString = computeHMAC(rawToken);
+  const tokenId = randomUUID();
+  await db`
+    INSERT INTO user_tokens (id, user_id, token_hash, type, expires_at)
+    VALUES (
+      ${tokenId},
+      ${user.id}, 
+      ${tokenHashString}, 
+      'magic_link', 
+      ${expiresAt.toISOString()}
+    )
+  `;
+
+  return { user, rawToken };
+};
+
+/**
+ * Create a magic link token for sign-in
+ * Finds existing user and generates magic link
+ */
+export const createSignInMagicLink = async (
+  email: string,
+): Promise<{ user: User; rawToken: string } | null> => {
+  const user = await findUser(email);
+
+  if (!user) {
+    return null;
+  }
 
   const rawToken = generateSecureToken(32);
   const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
@@ -137,7 +186,7 @@ export const verifyMagicLink = async (
   };
 
   const userResults = await db`
-    SELECT id, email, created_at 
+    SELECT id, email, business_id, created_at 
     FROM users 
     WHERE id = ${tokenData.user_id}
   `;
@@ -149,6 +198,7 @@ export const verifyMagicLink = async (
   const userData = userResults[0] as {
     id: string;
     email: string;
+    business_id: string;
     created_at: string;
   };
 
@@ -157,6 +207,7 @@ export const verifyMagicLink = async (
   const user: User = {
     id: userData.id,
     email: userData.email,
+    business_id: userData.business_id,
     created_at: new Date(userData.created_at),
   };
 
@@ -195,7 +246,7 @@ export const getSession = async (
       SELECT 
         s.id_hash, s.user_id, s.expires_at as session_expires_at, 
         s.last_activity_at as session_last_activity_at, s.created_at as session_created_at,
-        u.id as user_id_result, u.email, u.created_at as user_created_at
+        u.id as user_id_result, u.email, u.business_id, u.created_at as user_created_at
       FROM sessions s
       JOIN users u ON s.user_id = u.id
       WHERE s.id_hash = ${sessionIdHash}
@@ -212,6 +263,7 @@ export const getSession = async (
       user: {
         id: data.user_id_result,
         email: data.email,
+        business_id: data.business_id,
         created_at: new Date(data.user_created_at),
       },
       session: {

@@ -20,7 +20,7 @@ This document outlines the phased implementation strategy for building ClickNPS,
 ---
 
 ## Phase 1: Core Data Model & Database
-**Status**: NOT STARTED  
+**Status**: IN PROGRESS
 **Timeline**: Days 2-3
 
 ### Goals

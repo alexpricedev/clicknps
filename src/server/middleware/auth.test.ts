@@ -1,23 +1,29 @@
-import { beforeEach, describe, expect, mock, test } from "bun:test";
+import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
 import { SQL } from "bun";
-import { cleanupTestData } from "../test-utils/helpers";
+import { cleanupTestData, randomEmail } from "../test-utils/helpers";
 
 if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL is required for tests");
 }
-const testDb = new SQL(process.env.DATABASE_URL);
+const connection = new SQL(process.env.DATABASE_URL);
+
 mock.module("../services/database", () => ({
-  db: testDb,
+  get db() {
+    return connection;
+  },
 }));
 
-import { createSession, findOrCreateUser } from "../services/auth";
+import { createSession, createUser } from "../services/auth";
+import { db } from "../services/database";
 import { getAuthContext, redirectIfAuthenticated, requireAuth } from "./auth";
-
-const db = testDb;
 
 describe("Auth Middleware", () => {
   beforeEach(async () => {
-    await cleanupTestData(testDb);
+    await cleanupTestData(db);
+  });
+
+  afterAll(async () => {
+    await connection.end();
   });
 
   describe("getAuthContext", () => {
@@ -42,7 +48,7 @@ describe("Auth Middleware", () => {
     });
 
     test("returns unauthenticated context for expired session", async () => {
-      const user = await findOrCreateUser("expired@example.com");
+      const user = await createUser(randomEmail(), "Test Business");
 
       // Create session using service, then manually expire it
       const sessionId = await createSession(user.id);
@@ -70,7 +76,7 @@ describe("Auth Middleware", () => {
     });
 
     test("returns authenticated context for valid session", async () => {
-      const user = await findOrCreateUser("valid@example.com");
+      const user = await createUser("valid@example.com", "Test Business");
       const sessionId = await createSession(user.id);
 
       const request = new Request("http://localhost:3000/test", {
@@ -87,7 +93,7 @@ describe("Auth Middleware", () => {
     });
 
     test("handles multiple cookies correctly", async () => {
-      const user = await findOrCreateUser("cookies@example.com");
+      const user = await createUser("cookies@example.com", "Test Business");
       const sessionId = await createSession(user.id);
 
       const request = new Request("http://localhost:3000/test", {
@@ -117,7 +123,7 @@ describe("Auth Middleware", () => {
 
   describe("requireAuth", () => {
     test("returns null for authenticated user", async () => {
-      const user = await findOrCreateUser("authed@example.com");
+      const user = await createUser("authed@example.com", "Test Business");
       const sessionId = await createSession(user.id);
 
       const request = new Request("http://localhost:3000/protected", {
@@ -141,7 +147,7 @@ describe("Auth Middleware", () => {
     });
 
     test("returns redirect for expired session", async () => {
-      const user = await findOrCreateUser("expired2@example.com");
+      const user = await createUser("expired2@example.com", "Test Business");
 
       // Create session using service, then manually expire it
       const sessionId = await createSession(user.id);
@@ -173,7 +179,10 @@ describe("Auth Middleware", () => {
 
   describe("redirectIfAuthenticated", () => {
     test("returns redirect response for authenticated user", async () => {
-      const user = await findOrCreateUser("authredirect@example.com");
+      const user = await createUser(
+        "authredirect@example.com",
+        "Test Business",
+      );
       const sessionId = await createSession(user.id);
 
       const request = new Request("http://localhost:3000/login", {
@@ -197,7 +206,10 @@ describe("Auth Middleware", () => {
     });
 
     test("returns null for expired session", async () => {
-      const user = await findOrCreateUser("expiredredirect@example.com");
+      const user = await createUser(
+        "expiredredirect@example.com",
+        "Test Business",
+      );
 
       // Create session using service, then manually expire it
       const sessionId = await createSession(user.id);
@@ -251,7 +263,7 @@ describe("Auth Middleware", () => {
       expect(redirectResult).toBeNull();
 
       // Step 3: Create session (simulate successful login)
-      const user = await findOrCreateUser(email);
+      const user = await createUser(email, "Test Business");
       const sessionId = await createSession(user.id);
 
       // Step 4: Authenticated user can access protected resources

@@ -1,33 +1,39 @@
-import { beforeEach, describe, expect, mock, test } from "bun:test";
+import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
 import { SQL } from "bun";
 import { cleanupTestData } from "../../test-utils/helpers";
 
 if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL is required for tests");
 }
-const testDb = new SQL(process.env.DATABASE_URL);
+const connection = new SQL(process.env.DATABASE_URL);
+
 mock.module("../../services/database", () => ({
-  db: testDb,
+  get db() {
+    return connection;
+  },
 }));
 
 import {
   createSession,
   createSessionCookie,
-  findOrCreateUser,
+  createUser,
 } from "../../services/auth";
 import { createCsrfToken } from "../../services/csrf";
+import { db } from "../../services/database";
 import { logout } from "./logout";
-
-const db = testDb;
 
 describe("Logout Controller", () => {
   beforeEach(async () => {
-    await cleanupTestData(testDb);
+    await cleanupTestData(db);
+  });
+
+  afterAll(async () => {
+    await connection.end();
   });
 
   describe("POST /auth/logout", () => {
     test("successfully logs out user with valid session", async () => {
-      const user = await findOrCreateUser("logout@example.com");
+      const user = await createUser("logout@example.com", "Test Business");
       const sessionId = await createSession(user.id);
       const cookieHeader = createSessionCookie(sessionId);
       const csrfToken = await createCsrfToken(
@@ -119,7 +125,7 @@ describe("Logout Controller", () => {
     });
 
     test("multiple session cookies - uses correct session_id", async () => {
-      const user = await findOrCreateUser("multi@example.com");
+      const user = await createUser("multi@example.com", "Test Business");
       const sessionId = await createSession(user.id);
       const csrfToken = await createCsrfToken(
         sessionId,
@@ -155,7 +161,7 @@ describe("Logout Controller", () => {
 
     test("handles database error during session deletion gracefully", async () => {
       // Create session then delete the user to cause foreign key issues
-      const user = await findOrCreateUser("dbError@example.com");
+      const user = await createUser("dbError@example.com", "Test Business");
       const sessionId = await createSession(user.id);
 
       // Delete user (this will cascade delete the session in real DB, but might cause errors in test)
@@ -194,7 +200,7 @@ describe("Logout Controller", () => {
     });
 
     test("requires CSRF token - rejects request without token", async () => {
-      const user = await findOrCreateUser("csrf-test@example.com");
+      const user = await createUser("csrf-test@example.com", "Test Business");
       const sessionId = await createSession(user.id);
       const cookieHeader = createSessionCookie(sessionId);
 
@@ -213,7 +219,7 @@ describe("Logout Controller", () => {
     });
 
     test("requires CSRF token - rejects request with invalid token", async () => {
-      const user = await findOrCreateUser("csrf-test2@example.com");
+      const user = await createUser("csrf-test2@example.com", "Test Business");
       const sessionId = await createSession(user.id);
       const cookieHeader = createSessionCookie(sessionId);
 
@@ -236,7 +242,7 @@ describe("Logout Controller", () => {
     });
 
     test("accepts request with valid CSRF token", async () => {
-      const user = await findOrCreateUser("csrf-test3@example.com");
+      const user = await createUser("csrf-test3@example.com", "Test Business");
       const sessionId = await createSession(user.id);
       const cookieHeader = createSessionCookie(sessionId);
       const csrfToken = await createCsrfToken(
