@@ -1,23 +1,30 @@
-import { beforeEach, describe, expect, mock, test } from "bun:test";
+import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
 import { SQL } from "bun";
-import { cleanupTestData } from "../../test-utils/helpers";
+import { cleanupTestData, randomEmail } from "../../test-utils/helpers";
 import { createMockRequest } from "../../test-utils/setup";
 
 if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL is required for tests");
 }
-const testDb = new SQL(process.env.DATABASE_URL);
+const connection = new SQL(process.env.DATABASE_URL);
+
 mock.module("../../services/database", () => ({
-  db: testDb,
+  get db() {
+    return connection;
+  },
 }));
 
+import { createUser } from "../../services/auth";
+import { db } from "../../services/database";
 import { login } from "./login";
-
-const db = testDb;
 
 describe("Login Controller", () => {
   beforeEach(async () => {
-    await cleanupTestData(testDb);
+    await cleanupTestData(db);
+  });
+
+  afterAll(async () => {
+    await connection.end();
   });
 
   describe("GET /login", () => {
@@ -90,9 +97,13 @@ describe("Login Controller", () => {
   });
 
   describe("POST /login", () => {
-    test("creates magic link for valid email", async () => {
+    test("creates magic link for existing user", async () => {
+      // First create a user
+      const email = randomEmail();
+      const user = await createUser(email, "Test Business");
+
       const formData = new FormData();
-      formData.append("email", "test@example.com");
+      formData.append("email", email);
 
       const request = new Request("http://localhost:3000/login", {
         method: "POST",
@@ -104,35 +115,49 @@ describe("Login Controller", () => {
       expect(response.status).toBe(303);
       expect(response.headers.get("location")).toBe("/login?state=email-sent");
 
-      // Verify user was created
-      const users =
-        await db`SELECT id, email FROM users WHERE email = 'test@example.com'`;
-      expect(users).toHaveLength(1);
-
-      // Verify magic link token was created
+      // Verify magic link token was created for the existing user
       const tokens = await db`
         SELECT id, user_id, type, expires_at 
         FROM user_tokens 
-        WHERE user_id = ${(users[0] as any).id} AND type = 'magic_link'
+        WHERE user_id = ${user.id} AND type = 'magic_link'
       `;
       expect(tokens).toHaveLength(1);
     });
 
-    test("normalizes email to lowercase", async () => {
+    test("normalizes email to lowercase for existing user", async () => {
+      // First create a user with lowercase email
+      const email = randomEmail();
+      await createUser(email, "Test Business");
+
       const formData = new FormData();
-      formData.append("email", "Test@Example.COM");
+      formData.append("email", email.toUpperCase());
 
       const request = new Request("http://localhost:3000/login", {
         method: "POST",
         body: formData,
       });
 
-      await login.create(request);
+      const response = await login.create(request);
 
-      // Verify user was created with lowercase email
-      const users =
-        await db`SELECT email FROM users WHERE email = 'test@example.com'`;
-      expect(users).toHaveLength(1);
+      expect(response.status).toBe(303);
+      expect(response.headers.get("location")).toBe("/login?state=email-sent");
+    });
+
+    test("redirects with error for non-existent user", async () => {
+      const formData = new FormData();
+      formData.append("email", "nonexistent@example.com");
+
+      const request = new Request("http://localhost:3000/login", {
+        method: "POST",
+        body: formData,
+      });
+
+      const response = await login.create(request);
+
+      expect(response.status).toBe(303);
+      expect(response.headers.get("location")).toBe(
+        "/login?state=validation-error&error=No+account+found+with+this+email+address.+Please+sign+up+first.",
+      );
     });
 
     test("redirects with error for invalid email", async () => {
@@ -169,12 +194,11 @@ describe("Login Controller", () => {
     });
 
     test("reuses existing user for same email", async () => {
-      // Create user first using proper UUID
-      const { randomUUID } = await import("node:crypto");
-      const userId = randomUUID();
-      const user = await db`
-        INSERT INTO users (id, email) VALUES (${userId}, 'existing@example.com') RETURNING id
-      `;
+      // Create user first using the proper auth service
+      const existingUser = await createUser(
+        "existing@example.com",
+        "Existing Business",
+      );
 
       const formData = new FormData();
       formData.append("email", "existing@example.com");
@@ -184,18 +208,21 @@ describe("Login Controller", () => {
         body: formData,
       });
 
-      await login.create(request);
+      const response = await login.create(request);
+
+      expect(response.status).toBe(303);
+      expect(response.headers.get("location")).toBe("/login?state=email-sent");
 
       // Should still be only one user
       const users =
         await db`SELECT id FROM users WHERE email = 'existing@example.com'`;
       expect(users).toHaveLength(1);
-      expect((users[0] as any).id).toBe((user[0] as any).id);
+      expect((users[0] as any).id).toBe(existingUser.id);
 
       // But should have created a new token
       const tokens = await db`
         SELECT id FROM user_tokens 
-        WHERE user_id = ${(user[0] as any).id} AND type = 'magic_link'
+        WHERE user_id = ${existingUser.id} AND type = 'magic_link'
       `;
       expect(tokens).toHaveLength(1);
     });
