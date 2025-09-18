@@ -1,0 +1,10 @@
+[data-page="home"] {
+  h1 {
+    color: var(--color-primary);
+    margin-bottom: 1.5rem;
+  }
+
+  button {
+    margin-bottom: 1rem;
+  }
+}

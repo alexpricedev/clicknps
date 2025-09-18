@@ -1,0 +1,47 @@
+{
+  "name": "clicknps",
+  "version": "0.1.0",
+  "scripts": {
+    "build": "bun run build:client && bun run build:css",
+    "build:client": "bun build ./src/client/main.ts --outdir ./dist/assets",
+    "build:css": "bunx @tailwindcss/cli -i ./src/client/style.css -o ./dist/assets/main.css --minify",
+    "start": "bun run src/server/main.ts",
+    "dev": "bun run dev:client & bun run dev:server & bun run dev:css",
+    "dev:client": "bun --watch build ./src/client/main.ts --outdir ./dist/assets",
+    "dev:server": "bun --watch run src/server/main.ts",
+    "dev:css": "bunx @tailwindcss/cli -i ./src/client/style.css -o ./dist/assets/main.css --watch",
+    "test": "NODE_ENV=test bun run src/server/database/cli.ts up && NODE_ENV=test bun test src",
+    "test:setup": "NODE_ENV=test bun run src/server/test-utils/bootstrap.ts",
+    "test:file": "NODE_ENV=test bun run src/server/database/cli.ts up && NODE_ENV=test bun test",
+    "commit": "git add --all && git commit",
+    "lint": "bunx @biomejs/biome@beta check src",
+    "lint:write": "bunx @biomejs/biome@beta check src --write",
+    "typecheck": "bun --bun tsc --noEmit",
+    "check": "bun run lint && bun run typecheck",
+    "migrate:up": "bun run src/server/database/cli.ts up",
+    "migrate:status": "bun run src/server/database/cli.ts status",
+    "migrate:create": "bun run src/server/database/cli.ts create",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.0.5",
+    "@types/bun": "1.2.21",
+    "@types/react": "^19.1.12",
+    "@types/react-dom": "19.1.9",
+    "autoprefixer": "^10.4.21",
+    "gitmoji-cli": "9.7.0",
+    "husky": "9.1.7",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "tailwindcss": "^4.1.13",
+    "typescript": "^5.9.2"
+  },
+  "gitmoji": {
+    "autoAdd": false,
+    "emojiFormat": "emoji",
+    "scopePrompt": false,
+    "messagePrompt": true,
+    "capitalizeTitle": true,
+    "gitmojisUrl": "https://gitmoji.dev/api/gitmojis"
+  }
+}
