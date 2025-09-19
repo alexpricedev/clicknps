@@ -4,22 +4,27 @@ if (!process.env.APP_URL) {
 
 export const stateHelpers = <T>() => ({
   parseState: (url: URL): T => {
-    const params: Record<string, string> = {};
-    for (const [key, value] of url.searchParams.entries()) {
-      params[key] = value;
+    const stateParam = url.searchParams.get("state");
+    if (!stateParam) {
+      return {} as T;
     }
-    return params as T;
+
+    try {
+      // State is always JSON-encoded, decode and parse it
+      const decoded = decodeURIComponent(stateParam);
+      return JSON.parse(decoded) as T;
+    } catch {
+      // Invalid or malicious state, fail safely
+      return {} as T;
+    }
   },
 
-  redirectWithState: (path: string, state: T): string => {
-    const url = new URL(path, process.env.APP_URL);
-    for (const [key, value] of Object.entries(
-      state as Record<string, unknown>,
-    )) {
-      if (value != null) {
-        url.searchParams.set(key, String(value));
-      }
+  buildRedirectUrlWithState: (path: string, state: T): string => {
+    if (state && Object.keys(state as Record<string, unknown>).length > 0) {
+      // Use proper URI encoding for URL parameters
+      const stateParam = encodeURIComponent(JSON.stringify(state));
+      return `${path}?state=${stateParam}`;
     }
-    return url.pathname + url.search;
+    return path;
   },
 });

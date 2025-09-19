@@ -1,7 +1,8 @@
 import { BaseLayout } from "../components/layouts";
 
 export interface LoginState {
-  state?: "email-sent" | "validation-error";
+  emailSent?: boolean;
+  validationError?: boolean;
   error?: string;
 }
 
@@ -24,7 +25,7 @@ export const Login = ({ state }: LoginProps) => {
 
         <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
           <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-            {state?.state === "email-sent" ? (
+            {state?.emailSent ? (
               <div className="rounded-md bg-green-50 p-4">
                 <div className="text-sm text-green-700">
                   <p className="font-medium">Check your email!</p>
@@ -38,7 +39,7 @@ export const Login = ({ state }: LoginProps) => {
               </div>
             ) : (
               <form method="POST" action="/login" className="space-y-6">
-                {state?.state === "validation-error" && state.error && (
+                {state?.validationError && state.error && (
                   <div className="rounded-md bg-red-50 p-4">
                     <div className="text-sm text-red-700">{state.error}</div>
                   </div>

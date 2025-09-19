@@ -14,6 +14,19 @@ This file contains essential context and guidelines for Claude instances working
 
 ### Code Quality Standards
 
+#### Test Command Usage
+
+⚠️ **Important:** Never run `bun test` directly.  
+Always use the corresponding `package.json` scripts (e.g. `bun run test:file <file>`).  
+This ensures the correct environment variables and configuration are loaded.
+
+#### Lint Command Usage
+
+⚠️ **Important:** Never run raw `biome` or `eslint` commands directly.  
+Always use the package.json scripts:  
+- `bun run check` → run all checks (zero warnings allowed)  
+- `bun run lint:write` → apply fixable linting issues automatically
+
 **STRICT LINTING ENFORCED:**
 
 ALWAYS check for TS errors and linting issues before finishing a work loop (`bun run check`)

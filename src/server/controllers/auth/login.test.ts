@@ -1,6 +1,11 @@
 import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
 import { SQL } from "bun";
-import { cleanupTestData, randomEmail } from "../../test-utils/helpers";
+import {
+  cleanupTestData,
+  createStateUrl,
+  encodeStateParam,
+  randomEmail,
+} from "../../test-utils/helpers";
 import { createMockRequest } from "../../test-utils/setup";
 
 if (!process.env.DATABASE_URL) {
@@ -25,6 +30,7 @@ describe("Login Controller", () => {
 
   afterAll(async () => {
     await connection.end();
+    mock.restore();
   });
 
   describe("GET /login", () => {
@@ -40,9 +46,9 @@ describe("Login Controller", () => {
       expect(html).toContain("Send magic link");
     });
 
-    test("shows success message when state=email-sent", async () => {
+    test("shows success message when emailSent is true", async () => {
       const request = createMockRequest(
-        "http://localhost:3000/login?state=email-sent",
+        createStateUrl("http://localhost:3000/login", { emailSent: true }),
         "GET",
       );
       const response = await login.index(request);
@@ -54,7 +60,10 @@ describe("Login Controller", () => {
 
     test("shows error message when error is provided", async () => {
       const request = createMockRequest(
-        "http://localhost:3000/login?state=validation-error&error=Invalid%20email",
+        createStateUrl("http://localhost:3000/login", {
+          validationError: true,
+          error: "Invalid email",
+        }),
         "GET",
       );
       const response = await login.index(request);
@@ -113,7 +122,9 @@ describe("Login Controller", () => {
       const response = await login.create(request);
 
       expect(response.status).toBe(303);
-      expect(response.headers.get("location")).toBe("/login?state=email-sent");
+      expect(response.headers.get("location")).toBe(
+        `/login?state=${encodeStateParam({ emailSent: true })}`,
+      );
 
       // Verify magic link token was created for the existing user
       const tokens = await db`
@@ -140,7 +151,9 @@ describe("Login Controller", () => {
       const response = await login.create(request);
 
       expect(response.status).toBe(303);
-      expect(response.headers.get("location")).toBe("/login?state=email-sent");
+      expect(response.headers.get("location")).toBe(
+        `/login?state=${encodeStateParam({ emailSent: true })}`,
+      );
     });
 
     test("redirects with error for non-existent user", async () => {
@@ -156,7 +169,7 @@ describe("Login Controller", () => {
 
       expect(response.status).toBe(303);
       expect(response.headers.get("location")).toBe(
-        "/login?state=validation-error&error=No+account+found+with+this+email+address.+Please+sign+up+first.",
+        `/login?state=${encodeStateParam({ validationError: true, error: "No account found with this email address. Please sign up first." })}`,
       );
     });
 
@@ -173,7 +186,7 @@ describe("Login Controller", () => {
 
       expect(response.status).toBe(303);
       expect(response.headers.get("location")).toBe(
-        "/login?state=validation-error&error=Invalid+email+address",
+        `/login?state=${encodeStateParam({ validationError: true, error: "Invalid email address" })}`,
       );
     });
 
@@ -189,7 +202,7 @@ describe("Login Controller", () => {
 
       expect(response.status).toBe(303);
       expect(response.headers.get("location")).toBe(
-        "/login?state=validation-error&error=Invalid+email+address",
+        `/login?state=${encodeStateParam({ validationError: true, error: "Invalid email address" })}`,
       );
     });
 
@@ -211,7 +224,9 @@ describe("Login Controller", () => {
       const response = await login.create(request);
 
       expect(response.status).toBe(303);
-      expect(response.headers.get("location")).toBe("/login?state=email-sent");
+      expect(response.headers.get("location")).toBe(
+        `/login?state=${encodeStateParam({ emailSent: true })}`,
+      );
 
       // Should still be only one user
       const users =

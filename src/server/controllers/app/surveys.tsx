@@ -1,0 +1,317 @@
+import type { BunRequest } from "bun";
+import { getAuthContext, requireAuth } from "../../middleware/auth";
+import { csrfProtection } from "../../middleware/csrf";
+import { getSessionIdFromCookies } from "../../services/auth";
+import { createCsrfToken } from "../../services/csrf";
+import {
+  createSurvey,
+  findSurvey,
+  listSurveys,
+  mintSurveyLinks,
+} from "../../services/surveys";
+import type { SurveyMintState } from "../../templates/survey-mint";
+import { SurveyMint } from "../../templates/survey-mint";
+import type { SurveyNewState } from "../../templates/survey-new";
+import { SurveyNew } from "../../templates/survey-new";
+import type { SurveysState } from "../../templates/surveys";
+import { Surveys } from "../../templates/surveys";
+import { redirect, render } from "../../utils/response";
+import { stateHelpers } from "../../utils/state";
+
+const {
+  parseState: parseSurveysState,
+  buildRedirectUrlWithState: buildRedirectUrlWithStateForSurvey,
+} = stateHelpers<SurveysState>();
+const {
+  parseState: parseNewState,
+  buildRedirectUrlWithState: buildRedirectUrlWithStateForSurveyNew,
+} = stateHelpers<SurveyNewState>();
+const {
+  parseState: parseMintState,
+  buildRedirectUrlWithState: buildRedirectUrlWithStateForSurveyMint,
+} = stateHelpers<SurveyMintState>();
+
+export const surveys = {
+  async index(req: BunRequest): Promise<Response> {
+    const auth = await getAuthContext(req);
+
+    if (!auth.isAuthenticated || !auth.business) {
+      return render(<Surveys isAuthenticated={false} />);
+    }
+
+    const url = new URL(req.url);
+    const state = parseSurveysState(url);
+    const surveysList = await listSurveys(auth.business.id);
+
+    return render(
+      <Surveys isAuthenticated={true} surveys={surveysList} state={state} />,
+    );
+  },
+
+  async new(req: BunRequest): Promise<Response> {
+    const [auth, sessionId] = await Promise.all([
+      getAuthContext(req),
+      getSessionIdFromCookies(req.headers.get("cookie")),
+    ]);
+
+    if (!auth.isAuthenticated || !sessionId) {
+      return render(<SurveyNew isAuthenticated={false} />);
+    }
+
+    const url = new URL(req.url);
+    const state = parseNewState(url);
+
+    const createCsrfTokenValue = await createCsrfToken(
+      sessionId,
+      "POST",
+      "/surveys/new",
+    );
+
+    return render(
+      <SurveyNew
+        isAuthenticated={true}
+        state={state}
+        createCsrfToken={createCsrfTokenValue}
+      />,
+    );
+  },
+
+  async create(req: BunRequest): Promise<Response> {
+    const authCheck = await requireAuth(req);
+    if (authCheck) return authCheck;
+
+    const csrfCheck = await csrfProtection(req, { path: "/surveys/new" });
+    if (csrfCheck) return csrfCheck;
+
+    try {
+      const formData = await req.formData();
+      const title = formData.get("title")?.toString()?.trim();
+      const description =
+        formData.get("description")?.toString()?.trim() || undefined;
+      const surveyId = formData.get("surveyId")?.toString()?.trim();
+      const ttlDaysStr = formData.get("ttlDays")?.toString()?.trim();
+
+      // Validate required fields
+      if (!title || !surveyId || !ttlDaysStr) {
+        return redirect(
+          buildRedirectUrlWithStateForSurveyNew("/surveys/new", {
+            error: "Missing required fields",
+          }),
+        );
+      }
+
+      // Validate title length
+      if (title.length < 2 || title.length > 100) {
+        return redirect(
+          buildRedirectUrlWithStateForSurveyNew("/surveys/new", {
+            error: "Survey name must be between 2 and 100 characters",
+          }),
+        );
+      }
+
+      // Validate survey ID format
+      if (!/^[a-zA-Z0-9_-]+$/.test(surveyId)) {
+        return redirect(
+          buildRedirectUrlWithStateForSurveyNew("/surveys/new", {
+            error:
+              "Survey ID must contain only letters, numbers, underscores, and hyphens",
+          }),
+        );
+      }
+
+      // Parse and validate TTL days
+      const ttlDays = Number.parseInt(ttlDaysStr, 10);
+      if (Number.isNaN(ttlDays) || ttlDays < 1 || ttlDays > 365) {
+        return redirect(
+          buildRedirectUrlWithStateForSurveyNew("/surveys/new", {
+            error: "TTL days must be a number between 1 and 365",
+          }),
+        );
+      }
+
+      // Validate description length if provided
+      if (description && description.length > 500) {
+        return redirect(
+          buildRedirectUrlWithStateForSurveyNew("/surveys/new", {
+            error: "Description must be less than 500 characters",
+          }),
+        );
+      }
+
+      const auth = await getAuthContext(req);
+      if (!auth.business) {
+        return new Response("Business not found", { status: 404 });
+      }
+
+      // Check if survey ID already exists
+      const existingSurvey = await findSurvey(auth.business.id, surveyId);
+      if (existingSurvey) {
+        return redirect(
+          buildRedirectUrlWithStateForSurveyNew("/surveys/new", {
+            error: "A survey with this ID already exists",
+          }),
+        );
+      }
+
+      // Create the survey
+      await createSurvey(auth.business.id, surveyId, {
+        title,
+        description,
+        ttl_days: ttlDays,
+      });
+
+      const successState: SurveysState = {
+        created: {
+          surveyId,
+          title,
+        },
+      };
+
+      return redirect(
+        buildRedirectUrlWithStateForSurvey("/surveys", successState),
+      );
+    } catch (_error) {
+      return redirect(
+        buildRedirectUrlWithStateForSurveyNew("/surveys/new", {
+          error: "Internal server error",
+        }),
+      );
+    }
+  },
+
+  async mintForm<T extends `${string}:surveyId${string}`>(
+    req: BunRequest<T>,
+  ): Promise<Response> {
+    const [auth, sessionId] = await Promise.all([
+      getAuthContext(req),
+      getSessionIdFromCookies(req.headers.get("cookie")),
+    ]);
+
+    if (!auth.isAuthenticated || !sessionId || !auth.business) {
+      return render(<SurveyMint isAuthenticated={false} />);
+    }
+
+    const surveyId = req.params.surveyId;
+    const survey = await findSurvey(auth.business.id, surveyId);
+    if (!survey) {
+      return new Response("Survey not found", {
+        status: 404,
+        headers: { "content-type": "text/html" },
+      });
+    }
+
+    const state = parseMintState(new URL(req.url));
+
+    const createCsrfTokenValue = await createCsrfToken(
+      sessionId,
+      "POST",
+      `/surveys/${surveyId}/mint`,
+    );
+
+    return render(
+      <SurveyMint
+        isAuthenticated={true}
+        survey={survey}
+        state={state}
+        createCsrfToken={createCsrfTokenValue}
+      />,
+    );
+  },
+
+  async mint<T extends `${string}:surveyId${string}`>(
+    req: BunRequest<T>,
+  ): Promise<Response> {
+    const authCheck = await requireAuth(req);
+    if (authCheck) return authCheck;
+
+    const surveyId = req.params.surveyId;
+
+    const csrfCheck = await csrfProtection(req, {
+      path: `/surveys/${surveyId}/mint`,
+    });
+    if (csrfCheck) return csrfCheck;
+
+    try {
+      const formData = await req.formData();
+      const subjectId = formData.get("subjectId")?.toString()?.trim();
+      const ttlDaysStr = formData.get("ttlDays")?.toString()?.trim();
+
+      // Validate required fields
+      if (!subjectId) {
+        return redirect(
+          buildRedirectUrlWithStateForSurveyMint(`/surveys/${surveyId}/mint`, {
+            error: "Subject ID is required",
+          }),
+        );
+      }
+
+      // Validate subject ID format
+      if (!/^[a-zA-Z0-9_-]+$/.test(subjectId)) {
+        return redirect(
+          buildRedirectUrlWithStateForSurveyMint(`/surveys/${surveyId}/mint`, {
+            error:
+              "Subject ID must contain only letters, numbers, underscores, and hyphens",
+          }),
+        );
+      }
+
+      // Parse TTL days if provided
+      let ttlDays: number | undefined;
+      if (ttlDaysStr) {
+        ttlDays = Number.parseInt(ttlDaysStr, 10);
+        if (Number.isNaN(ttlDays) || ttlDays < 1 || ttlDays > 365) {
+          return redirect(
+            buildRedirectUrlWithStateForSurveyMint(
+              `/surveys/${surveyId}/mint`,
+              {
+                error: "TTL days must be a number between 1 and 365",
+              },
+            ),
+          );
+        }
+      }
+
+      const auth = await getAuthContext(req);
+      if (!auth.business) {
+        return new Response("Business not found", { status: 404 });
+      }
+
+      // Find the survey (don't create)
+      const survey = await findSurvey(auth.business.id, surveyId);
+      if (!survey) {
+        return redirect(
+          buildRedirectUrlWithStateForSurveyMint(`/surveys/${surveyId}/mint`, {
+            error: "Survey not found",
+          }),
+        );
+      }
+
+      // Mint links for the survey
+      const result = await mintSurveyLinks(survey, {
+        subject_id: subjectId,
+        ttl_days: ttlDays,
+      });
+
+      const successState: SurveyMintState = {
+        success: {
+          subjectId,
+          links: result.links,
+          expires_at: result.expires_at,
+        },
+      };
+
+      return redirect(
+        buildRedirectUrlWithStateForSurveyMint(
+          `/surveys/${surveyId}/mint`,
+          successState,
+        ),
+      );
+    } catch (_error) {
+      return redirect(
+        buildRedirectUrlWithStateForSurveyMint(`/surveys/${surveyId}/mint`, {
+          error: "Internal server error",
+        }),
+      );
+    }
+  },
+};

@@ -59,7 +59,10 @@ export function BaseLayout({ title, children }: BaseLayoutProps) {
         <title>{title}</title>
         <link rel="stylesheet" href="/assets/main.css" />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <script type="module" src="/assets/main.js" />
+      </body>
     </html>
   );
 }
