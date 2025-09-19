@@ -4,9 +4,12 @@ import {
   getSessionIdFromCookies,
   renewSession,
 } from "../services/auth";
+import type { Business } from "../services/business";
+import { getBusiness } from "../services/business";
 
 export interface AuthContext {
   user: User | null;
+  business: Business | null;
   isAuthenticated: boolean;
 }
 
@@ -19,24 +22,28 @@ export const getAuthContext = async (req: Request): Promise<AuthContext> => {
   const sessionId = getSessionIdFromCookies(cookieHeader);
 
   if (!sessionId) {
-    return { user: null, isAuthenticated: false };
+    return { user: null, business: null, isAuthenticated: false };
   }
 
   try {
     const sessionData = await getSession(sessionId);
 
     if (!sessionData) {
-      return { user: null, isAuthenticated: false };
+      return { user: null, business: null, isAuthenticated: false };
     }
 
     await renewSession(sessionId);
 
+    // Fetch business information
+    const business = await getBusiness(sessionData.user.business_id);
+
     return {
       user: sessionData.user,
+      business,
       isAuthenticated: true,
     };
   } catch {
-    return { user: null, isAuthenticated: false };
+    return { user: null, business: null, isAuthenticated: false };
   }
 };
 

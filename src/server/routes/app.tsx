@@ -1,5 +1,5 @@
 import { about, contact, examples, home } from "../controllers/app";
-import { callback, login, logout } from "../controllers/auth";
+import { callback, login, logout, signup } from "../controllers/auth";
 import { createRouteHandler } from "../utils/route-handler";
 
 export const appRoutes = {
@@ -16,6 +16,10 @@ export const appRoutes = {
   "/login": createRouteHandler({
     GET: login.index,
     POST: login.create,
+  }),
+  "/signup": createRouteHandler({
+    GET: signup.index,
+    POST: signup.create,
   }),
   "/auth/callback": callback.index,
   "/auth/logout": createRouteHandler({

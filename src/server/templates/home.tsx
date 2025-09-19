@@ -15,9 +15,12 @@ export const Home = (props: {
       <div className="flex items-center gap-4">
         {props.auth.isAuthenticated ? (
           <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-600">
-              Welcome, {props.auth.user?.email}
-            </span>
+            <div className="text-sm text-gray-600">
+              <div>Welcome, {props.auth.user?.email}</div>
+              <div className="text-xs text-gray-500">
+                {props.auth.business?.business_name}
+              </div>
+            </div>
             <form method="POST" action="/auth/logout">
               <CsrfField token={props.csrfToken} />
               <button
