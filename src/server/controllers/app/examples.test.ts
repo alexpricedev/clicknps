@@ -9,7 +9,12 @@ import { createCsrfToken } from "../../services/csrf";
 import type { Example } from "../../services/example";
 import { createBunRequest } from "../../test-utils/bun-request";
 import { createMockExample } from "../../test-utils/factories";
-import { cleanupTestData, randomEmail } from "../../test-utils/helpers";
+import {
+  cleanupTestData,
+  createStateUrl,
+  encodeStateParam,
+  randomEmail,
+} from "../../test-utils/helpers";
 
 if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL is required for tests");
@@ -22,7 +27,6 @@ mock.module("../../services/database", () => ({
   },
 }));
 
-// Mock the example service
 const mockGetExamples = mock(async (): Promise<Example[]> => []);
 const mockCreateExample = mock(
   async (): Promise<Example> => createMockExample(),
@@ -48,6 +52,7 @@ describe("Examples Controller", () => {
 
   afterAll(async () => {
     await connection.end();
+    mock.restore();
   });
 
   const createTestSession = async () => {
@@ -96,14 +101,14 @@ describe("Examples Controller", () => {
       expect(html).not.toContain("Please log in to add examples");
     });
 
-    test("shows success message when state is submission-success", async () => {
+    test("shows success message when submitted is true", async () => {
       const sessionId = await createTestSession();
       const cookieHeader = createSessionCookie(sessionId);
 
       mockGetExamples.mockResolvedValue([]);
 
       const request = createBunRequest(
-        "http://localhost:3000/examples?state=submission-success",
+        createStateUrl("http://localhost:3000/examples", { submitted: true }),
         {
           headers: { Cookie: cookieHeader },
         },
@@ -122,7 +127,7 @@ describe("Examples Controller", () => {
 
       // Test created message
       const createRequest = createBunRequest(
-        "http://localhost:3000/examples?state=submission-success",
+        createStateUrl("http://localhost:3000/examples", { submitted: true }),
         {
           headers: { Cookie: cookieHeader },
         },
@@ -134,7 +139,7 @@ describe("Examples Controller", () => {
 
       // Test deleted message
       const deleteRequest = createBunRequest(
-        "http://localhost:3000/examples?state=deletion-success",
+        createStateUrl("http://localhost:3000/examples", { deleted: true }),
         {
           headers: { Cookie: cookieHeader },
         },
@@ -310,7 +315,7 @@ describe("Examples Controller", () => {
       expect(mockCreateExample).toHaveBeenCalledWith("New Example");
       expect(response.status).toBe(303);
       expect(response.headers.get("location")).toBe(
-        "/examples?state=submission-success",
+        `/examples?state=${encodeStateParam({ submitted: true })}`,
       );
     });
 
@@ -337,7 +342,7 @@ describe("Examples Controller", () => {
       expect(mockCreateExample).toHaveBeenCalledWith("Trimmed Example");
       expect(response.status).toBe(303);
       expect(response.headers.get("location")).toBe(
-        "/examples?state=submission-success",
+        `/examples?state=${encodeStateParam({ submitted: true })}`,
       );
     });
 
@@ -414,7 +419,7 @@ describe("Examples Controller", () => {
       expect(mockCreateExample).toHaveBeenCalledWith("Header Token Example");
       expect(response.status).toBe(303);
       expect(response.headers.get("location")).toBe(
-        "/examples?state=submission-success",
+        `/examples?state=${encodeStateParam({ submitted: true })}`,
       );
     });
   });
@@ -494,7 +499,7 @@ describe("Examples Controller", () => {
       expect(response.status).toBe(303);
       expect(mockDeleteExample).toHaveBeenCalledWith(42);
       expect(response.headers.get("location")).toBe(
-        "/examples?state=deletion-success",
+        `/examples?state=${encodeStateParam({ deleted: true })}`,
       );
     });
 

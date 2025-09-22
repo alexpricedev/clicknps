@@ -1,2 +1,1 @@
-export { examplesApi } from "./examples";
-export { statsApi } from "./stats";
+export { surveysApi } from "./surveys";

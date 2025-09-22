@@ -1,6 +1,11 @@
 import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
 import { SQL } from "bun";
-import { cleanupTestData, randomEmail } from "../../test-utils/helpers";
+import {
+  cleanupTestData,
+  createStateUrl,
+  encodeStateParam,
+  randomEmail,
+} from "../../test-utils/helpers";
 import { createMockRequest } from "../../test-utils/setup";
 
 if (!process.env.DATABASE_URL) {
@@ -46,9 +51,9 @@ describe("Signup Controller", () => {
       expect(html).toContain("Create account");
     });
 
-    test("shows success message when state=email-sent", async () => {
+    test("shows success message when emailSent is true", async () => {
       const request = createMockRequest(
-        "http://localhost:3000/signup?state=email-sent",
+        createStateUrl("http://localhost:3000/signup", { emailSent: true }),
         "GET",
       );
       const response = await signup.index(request);
@@ -60,7 +65,10 @@ describe("Signup Controller", () => {
 
     test("shows error message when error is provided", async () => {
       const request = createMockRequest(
-        "http://localhost:3000/signup?state=validation-error&error=Invalid%20email",
+        createStateUrl("http://localhost:3000/signup", {
+          validationError: true,
+          error: "Invalid email",
+        }),
         "GET",
       );
       const response = await signup.index(request);
@@ -121,7 +129,9 @@ describe("Signup Controller", () => {
       const response = await signup.create(request);
 
       expect(response.status).toBe(303);
-      expect(response.headers.get("location")).toBe("/signup?state=email-sent");
+      expect(response.headers.get("location")).toBe(
+        `/signup?state=${encodeStateParam({ emailSent: true })}`,
+      );
 
       // Verify user was created
       const users = await db`
@@ -164,7 +174,9 @@ describe("Signup Controller", () => {
       const response = await signup.create(request);
 
       expect(response.status).toBe(303);
-      expect(response.headers.get("location")).toBe("/signup?state=email-sent");
+      expect(response.headers.get("location")).toBe(
+        `/signup?state=${encodeStateParam({ emailSent: true })}`,
+      );
 
       // Verify user was created with lowercase email
       const users = await db`
@@ -192,7 +204,7 @@ describe("Signup Controller", () => {
 
       expect(response.status).toBe(303);
       expect(response.headers.get("location")).toBe(
-        "/signup?state=validation-error&error=An+account+with+this+email+already+exists.+Please+sign+in+instead.",
+        `/signup?state=${encodeStateParam({ validationError: true, error: "An account with this email already exists. Please sign in instead." })}`,
       );
 
       // Should still be only one user
@@ -214,7 +226,7 @@ describe("Signup Controller", () => {
 
       expect(response.status).toBe(303);
       expect(response.headers.get("location")).toBe(
-        "/signup?state=validation-error&error=Invalid+email+address",
+        `/signup?state=${encodeStateParam({ validationError: true, error: "Invalid email address" })}`,
       );
     });
 
@@ -231,7 +243,7 @@ describe("Signup Controller", () => {
 
       expect(response.status).toBe(303);
       expect(response.headers.get("location")).toBe(
-        "/signup?state=validation-error&error=Invalid+email+address",
+        `/signup?state=${encodeStateParam({ validationError: true, error: "Invalid email address" })}`,
       );
     });
 
@@ -248,7 +260,7 @@ describe("Signup Controller", () => {
 
       expect(response.status).toBe(303);
       expect(response.headers.get("location")).toBe(
-        "/signup?state=validation-error&error=Business+name+is+required",
+        `/signup?state=${encodeStateParam({ validationError: true, error: "Business name is required" })}`,
       );
     });
 
@@ -266,7 +278,7 @@ describe("Signup Controller", () => {
 
       expect(response.status).toBe(303);
       expect(response.headers.get("location")).toBe(
-        "/signup?state=validation-error&error=Business+name+is+required",
+        `/signup?state=${encodeStateParam({ validationError: true, error: "Business name is required" })}`,
       );
     });
 
@@ -286,7 +298,9 @@ describe("Signup Controller", () => {
       const response = await signup.create(request);
 
       expect(response.status).toBe(303);
-      expect(response.headers.get("location")).toBe("/signup?state=email-sent");
+      expect(response.headers.get("location")).toBe(
+        `/signup?state=${encodeStateParam({ emailSent: true })}`,
+      );
 
       // Verify business was created with trimmed name
       const businesses = await db`
