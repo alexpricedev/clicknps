@@ -4,7 +4,8 @@ import { Layout } from "../components/layouts";
 import type { Example } from "../services/example";
 
 export interface ExamplesState {
-  state?: "submission-success" | "deletion-success";
+  submitted?: boolean;
+  deleted?: boolean;
 }
 
 type PublicExamplesProps = {
@@ -28,14 +29,13 @@ export const Examples = (props: ExamplesProps): JSX.Element => {
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-8">Examples from Database</h1>
 
-        {props.isAuthenticated && props.state?.state && (
-          <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded mb-6">
-            {props.state.state === "submission-success" &&
-              "✅ Example added successfully!"}
-            {props.state.state === "deletion-success" &&
-              "🗑️ Example deleted successfully!"}
-          </div>
-        )}
+        {props.isAuthenticated &&
+          (props.state?.submitted || props.state?.deleted) && (
+            <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded mb-6">
+              {props.state.submitted && "✅ Example added successfully!"}
+              {props.state.deleted && "🗑️ Example deleted successfully!"}
+            </div>
+          )}
 
         <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
           <h2 className="text-xl font-semibold mb-4">Add New Example</h2>
@@ -97,15 +97,6 @@ export const Examples = (props: ExamplesProps): JSX.Element => {
                         <button
                           type="submit"
                           className="px-3 py-1 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-                          onClick={(e) => {
-                            if (
-                              !confirm(
-                                `Are you sure you want to delete "${example.name}"?`,
-                              )
-                            ) {
-                              e.preventDefault();
-                            }
-                          }}
                         >
                           Delete
                         </button>

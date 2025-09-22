@@ -1,4 +1,27 @@
+import { randomUUID } from "node:crypto";
 import type { SQL } from "bun";
+
+/**
+ * Helper function to create URL-encoded state parameter for tests
+ * @param state - The state object to encode
+ * @returns URL-encoded state parameter (without the ?state= prefix)
+ */
+export const encodeStateParam = (state: Record<string, unknown>): string => {
+  return encodeURIComponent(JSON.stringify(state));
+};
+
+/**
+ * Helper function to create full URL with encoded state parameter
+ * @param baseUrl - The base URL (e.g., "http://localhost:3000/signup")
+ * @param state - The state object to encode
+ * @returns Full URL with encoded state parameter
+ */
+export const createStateUrl = (
+  baseUrl: string,
+  state: Record<string, unknown>,
+): string => {
+  return `${baseUrl}?state=${encodeStateParam(state)}`;
+};
 
 /**
  * Clean up test data between tests
@@ -8,6 +31,10 @@ import type { SQL } from "bun";
  */
 export const cleanupTestData = async (db: SQL): Promise<void> => {
   // Clean up all tables in dependency order (FK constraints)
+  await db`TRUNCATE TABLE responses CASCADE`;
+  await db`TRUNCATE TABLE survey_links CASCADE`;
+  await db`TRUNCATE TABLE surveys CASCADE`;
+  await db`TRUNCATE TABLE api_keys CASCADE`;
   await db`TRUNCATE TABLE user_tokens CASCADE`;
   await db`TRUNCATE TABLE sessions CASCADE`;
   await db`TRUNCATE TABLE users CASCADE`;
@@ -42,4 +69,22 @@ export const randomEmail = (domain = "example.com"): string => {
   const timestamp = Date.now();
   const random = Math.random().toString(36).substring(2, 8);
   return `test-${timestamp}-${random}@${domain}`;
+};
+
+/**
+ * Creates a test business and returns its ID
+ * Useful for tests that need business context
+ */
+export const createTestBusiness = async (
+  connection: SQL,
+  businessName = "Test Business",
+): Promise<string> => {
+  const businessId = randomUUID();
+
+  await connection`
+    INSERT INTO businesses (id, business_name, created_at, updated_at)
+    VALUES (${businessId}, ${businessName}, NOW(), NOW())
+  `;
+
+  return businessId;
 };

@@ -13,7 +13,8 @@ import { Examples } from "../../templates/examples";
 import { redirect, render } from "../../utils/response";
 import { stateHelpers } from "../../utils/state";
 
-const { parseState, redirectWithState } = stateHelpers<ExamplesState>();
+const { parseState, buildRedirectUrlWithState: redirectWithState } =
+  stateHelpers<ExamplesState>();
 
 export const examples = {
   async index(req: BunRequest): Promise<Response> {
@@ -89,9 +90,7 @@ export const examples = {
 
     // Happy path - successful form submission
     await createExample(name.trim());
-    return redirect(
-      redirectWithState("/examples", { state: "submission-success" }),
-    );
+    return redirect(redirectWithState("/examples", { submitted: true }));
   },
 
   async destroy<T extends `${string}:id${string}`>(
@@ -127,8 +126,6 @@ export const examples = {
       return redirect(redirectWithState("/examples", {}));
     }
 
-    return redirect(
-      redirectWithState("/examples", { state: "deletion-success" }),
-    );
+    return redirect(redirectWithState("/examples", { deleted: true }));
   },
 };

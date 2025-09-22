@@ -1,4 +1,4 @@
-import { describe, expect, mock, test } from "bun:test";
+import { afterAll, describe, expect, mock, test } from "bun:test";
 import { createMockVisitorStats } from "../../test-utils/factories";
 import { createMockRequest } from "../../test-utils/setup";
 
@@ -50,5 +50,9 @@ describe("Home Controller", () => {
       // The HTML should contain the POST method somewhere
       expect(html).toContain("POST");
     });
+  });
+
+  afterAll(() => {
+    mock.restore();
   });
 });
