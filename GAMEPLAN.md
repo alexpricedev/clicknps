@@ -29,13 +29,12 @@ This document outlines the phased implementation strategy for building ClickNPS,
 
 ### Tasks
 - [ ] Create database migrations for core tables:
-  - `customers` - API key management, webhook URLs
-  - `surveys` - Survey configurations 
-  - `survey_links` - Generated links with TTL
-  - `responses` - NPS scores and timestamps
-  - `comments` - Optional feedback text
-  - `credits` - Credit balance tracking
-  - `webhook_queue` - Delayed webhook delivery
+  - [x] `businesses` - API key management, webhook URLs
+  - [x] `surveys` - Survey configurations 
+  - [x] `survey_links` - Generated links with TTL
+  - [x] `responses` - NPS scores and timestamps
+  - [ ] `credits` - Credit balance tracking
+  - [ ] `webhook_queue` - Delayed webhook delivery
 - [ ] Implement database service layer with TypeScript types
 - [ ] Add database seed scripts for development
 - [ ] Write comprehensive tests for data layer
@@ -48,7 +47,7 @@ This document outlines the phased implementation strategy for building ClickNPS,
 ---
 
 ## Phase 2: Authentication & Customer Management
-**Status**: NOT STARTED  
+**Status**: IN PROGRESS
 **Timeline**: Days 4-5
 
 ### Goals
@@ -56,13 +55,13 @@ This document outlines the phased implementation strategy for building ClickNPS,
 - Implement API key generation and management
 
 ### Tasks
-- [ ] Extend auth system for customer registration
+- [x] Extend auth system for customer registration
 - [ ] Create customer dashboard layout
-- [ ] Implement API key generation and rotation
+- [x] Implement API key generation and rotation
 - [ ] Add webhook URL configuration UI
 - [ ] Create customer settings page
-- [ ] Implement session management for dashboard
-- [ ] Add tests for auth flows
+- [x] Implement session management for dashboard
+- [x] Add tests for auth flows
 
 ### Success Criteria
 - Customers can register and sign in
@@ -80,12 +79,12 @@ This document outlines the phased implementation strategy for building ClickNPS,
 - Generate unique, trackable survey links
 
 ### Tasks
-- [ ] Create `POST /api/v1/links/mint` endpoint
-- [ ] Implement link generation logic:
+- [x] Create `POST /api/v1/links/mint` endpoint
+- [x] Implement link generation logic:
   - Generate unique tokens for each score (0-10)
   - Store survey_id and subject_id mappings
   - Apply TTL settings
-- [ ] Add API authentication middleware
+- [x] Add API authentication middleware
 - [ ] Create link validation service
 - [ ] Generate HTML email snippet (optional response)
 - [ ] Rate limiting for API endpoints

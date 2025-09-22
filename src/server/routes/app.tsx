@@ -4,6 +4,7 @@ import {
   examples,
   home,
   responsesController,
+  settings,
   surveys,
 } from "../controllers/app";
 import { callback, login, logout, signup } from "../controllers/auth";
@@ -30,6 +31,10 @@ export const appRoutes = {
   "/surveys/:surveyId/mint": createRouteHandler({
     GET: surveys.mintForm,
     POST: surveys.mint,
+  }),
+  "/settings/api-keys": createRouteHandler({
+    GET: settings.apiKeys,
+    POST: settings.apiKeys,
   }),
   "/login": createRouteHandler({
     GET: login.index,
