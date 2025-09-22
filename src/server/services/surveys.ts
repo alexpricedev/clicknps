@@ -37,6 +37,14 @@ export interface MintLinksResponse {
   expires_at: string;
 }
 
+export interface SurveyResponse {
+  id: string;
+  responded_at: Date;
+  comment: string | null;
+  score: number;
+  subject_id: string;
+}
+
 /**
  * Find an existing survey by business and survey_id
  */
@@ -239,4 +247,26 @@ export const updateResponseComment = async (
   `) as DatabaseMutationResult;
 
   return hasAffectedRows(result);
+};
+
+/**
+ * Get all responses for a survey with response details
+ */
+export const getSurveyResponses = async (
+  surveyId: string,
+): Promise<SurveyResponse[]> => {
+  const result = await db`
+    SELECT 
+      r.id,
+      r.responded_at,
+      r.comment,
+      sl.score,
+      sl.subject_id
+    FROM responses r
+    JOIN survey_links sl ON r.survey_link_id = sl.id
+    WHERE sl.survey_id = ${surveyId}
+    ORDER BY r.responded_at DESC
+  `;
+
+  return result as SurveyResponse[];
 };

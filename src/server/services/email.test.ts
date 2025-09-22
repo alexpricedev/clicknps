@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test } from "bun:test";
+import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
 import {
   type EmailMessage,
   type EmailProvider,
@@ -27,6 +27,10 @@ describe("Email Service", () => {
   beforeEach(() => {
     mockProvider = new MockEmailProvider();
     emailService = new EmailService(mockProvider);
+  });
+
+  afterAll(() => {
+    mock.restore();
   });
 
   describe("EmailService", () => {

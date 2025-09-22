@@ -24,6 +24,7 @@ describe("Auth Middleware", () => {
 
   afterAll(async () => {
     await connection.end();
+    mock.restore();
   });
 
   describe("getAuthContext", () => {

@@ -1,12 +1,12 @@
 import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
 import { SQL } from "bun";
+import { createBunRequest } from "../../test-utils/bun-request";
 import {
   cleanupTestData,
   createStateUrl,
   encodeStateParam,
   randomEmail,
 } from "../../test-utils/helpers";
-import { createMockRequest } from "../../test-utils/setup";
 
 if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL is required for tests");
@@ -35,11 +35,14 @@ describe("Signup Controller", () => {
 
   afterAll(async () => {
     await connection.end();
+    mock.restore();
   });
 
   describe("GET /signup", () => {
     test("renders signup page for unauthenticated user", async () => {
-      const request = createMockRequest("http://localhost:3000/signup", "GET");
+      const request = createBunRequest("http://localhost:3000/signup", {
+        method: "GET",
+      });
       const response = await signup.index(request);
       const html = await response.text();
 
@@ -52,9 +55,9 @@ describe("Signup Controller", () => {
     });
 
     test("shows success message when emailSent is true", async () => {
-      const request = createMockRequest(
+      const request = createBunRequest(
         createStateUrl("http://localhost:3000/signup", { emailSent: true }),
-        "GET",
+        { method: "GET" },
       );
       const response = await signup.index(request);
       const html = await response.text();
@@ -64,12 +67,12 @@ describe("Signup Controller", () => {
     });
 
     test("shows error message when error is provided", async () => {
-      const request = createMockRequest(
+      const request = createBunRequest(
         createStateUrl("http://localhost:3000/signup", {
           validationError: true,
           error: "Invalid email",
         }),
-        "GET",
+        { method: "GET" },
       );
       const response = await signup.index(request);
       const html = await response.text();

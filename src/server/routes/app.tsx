@@ -32,6 +32,9 @@ export const appRoutes = {
     GET: surveys.mintForm,
     POST: surveys.mint,
   }),
+  "/surveys/:surveyId/responses": createRouteHandler({
+    GET: surveys.responses,
+  }),
   "/settings/api-keys": createRouteHandler({
     GET: settings.apiKeys,
     POST: settings.apiKeys,

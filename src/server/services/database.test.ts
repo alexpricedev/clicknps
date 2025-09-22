@@ -17,6 +17,7 @@ import { db, testConnection } from "./database";
 describe("database service", () => {
   afterAll(async () => {
     await connection.end();
+    mock.restore();
   });
 
   describe("testConnection", () => {

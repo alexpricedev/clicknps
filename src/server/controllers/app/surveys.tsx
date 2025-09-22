@@ -6,6 +6,7 @@ import { createCsrfToken } from "../../services/csrf";
 import {
   createSurvey,
   findSurvey,
+  getSurveyResponses,
   listSurveys,
   mintSurveyLinks,
 } from "../../services/surveys";
@@ -13,6 +14,7 @@ import type { SurveyMintState } from "../../templates/survey-mint";
 import { SurveyMint } from "../../templates/survey-mint";
 import type { SurveyNewState } from "../../templates/survey-new";
 import { SurveyNew } from "../../templates/survey-new";
+import { SurveyResponses } from "../../templates/survey-responses";
 import type { SurveysState } from "../../templates/surveys";
 import { Surveys } from "../../templates/surveys";
 import { redirect, render } from "../../utils/response";
@@ -313,5 +315,34 @@ export const surveys = {
         }),
       );
     }
+  },
+
+  async responses<T extends `${string}:surveyId${string}`>(
+    req: BunRequest<T>,
+  ): Promise<Response> {
+    const auth = await getAuthContext(req);
+
+    if (!auth.isAuthenticated || !auth.business) {
+      return render(<SurveyResponses isAuthenticated={false} />);
+    }
+
+    const surveyId = req.params.surveyId;
+    const survey = await findSurvey(auth.business.id, surveyId);
+    if (!survey) {
+      return new Response("Survey not found", {
+        status: 404,
+        headers: { "content-type": "text/html" },
+      });
+    }
+
+    const responses = await getSurveyResponses(survey.id);
+
+    return render(
+      <SurveyResponses
+        isAuthenticated={true}
+        survey={survey}
+        responses={responses}
+      />,
+    );
   },
 };
