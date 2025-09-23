@@ -74,36 +74,6 @@ p {
   margin: 0 0 1.2em 0;
 }
 
-a {
-  color: var(--color-primary);
-  text-decoration: none;
-  transition: color 0.15s;
-
-  &:hover,
-  &:focus {
-    color: var(--color-primary-light);
-    text-decoration: underline;
-  }
-}
-
-button {
-  font-family: inherit;
-  font-size: 1rem;
-  padding: 0.5em 1.2em;
-  border-radius: var(--radius);
-  border: none;
-  background: var(--color-primary);
-  color: #fff;
-  cursor: pointer;
-  box-shadow: var(--shadow);
-  transition: background 0.15s;
-
-  &:hover,
-  &:focus {
-    background: var(--color-primary-light);
-  }
-}
-
 img {
   max-width: 100%;
   display: block;

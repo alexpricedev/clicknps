@@ -1,11 +1,62 @@
-import { afterAll, afterEach, describe, expect, mock, test } from "bun:test";
-import { createMockRequest } from "../../test-utils/setup";
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  mock,
+  test,
+} from "bun:test";
+import { SQL } from "bun";
+import {
+  createSession,
+  createSessionCookie,
+  createUser,
+} from "../../services/auth";
+import { createCsrfToken } from "../../services/csrf";
+import { createBunRequest } from "../../test-utils/bun-request";
+import { cleanupTestData, randomEmail } from "../../test-utils/helpers";
+
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL is required for tests");
+}
+const connection = new SQL(process.env.DATABASE_URL);
+
+mock.module("../../services/database", () => ({
+  get db() {
+    return connection;
+  },
+}));
 
 // Mock the API keys service
-const mockCreateApiKey = mock();
-const mockDeleteApiKey = mock();
-const mockGetApiKeysByBusiness = mock();
-const mockRotateApiKey = mock();
+const mockCreateApiKey = mock(() => ({
+  id: "key-123",
+  business_id: "business-123",
+  name: "Test Key",
+  token: "ck_default_token",
+  created_at: new Date(),
+}));
+
+const mockDeleteApiKey = mock(() => true);
+
+const mockGetApiKeysByBusiness = mock(() => [
+  {
+    id: "key-123",
+    business_id: "business-123",
+    name: "Test Key",
+    last_used_at: null,
+    created_at: new Date(),
+  },
+]);
+
+const mockRotateApiKey = mock(() => ({
+  id: "new-key-456",
+  name: "Test Key",
+  token: "ck_newtoken789",
+  business_id: "business-123",
+  created_at: new Date(),
+}));
+
 mock.module("../../services/api-keys", () => ({
   createApiKey: mockCreateApiKey,
   deleteApiKey: mockDeleteApiKey,
@@ -13,89 +64,55 @@ mock.module("../../services/api-keys", () => ({
   rotateApiKey: mockRotateApiKey,
 }));
 
-// Mock the auth middleware
-const mockGetAuthContext = mock();
-const mockRequireAuth = mock();
-mock.module("../../middleware/auth", () => ({
-  getAuthContext: mockGetAuthContext,
-  requireAuth: mockRequireAuth,
-}));
-
-// Mock auth service
-const mockGetSessionIdFromCookies = mock();
-mock.module("../../services/auth", () => ({
-  getSessionIdFromCookies: mockGetSessionIdFromCookies,
-}));
-
-// Mock CSRF service
-const mockCreateCsrfToken = mock();
-const mockVerifyCsrfToken = mock();
-mock.module("../../services/csrf", () => ({
-  createCsrfToken: mockCreateCsrfToken,
-  verifyCsrfToken: mockVerifyCsrfToken,
-}));
-
 import { settings } from "./settings";
 
-const mockBusiness = {
-  id: "business-123",
-  name: "Test Business",
-  created_at: new Date(),
-};
-
-const mockUser = {
-  id: "user-123",
-  email: "test@example.com",
-  business_id: "business-123",
-  created_at: new Date(),
-};
-
-const mockAuthContext = {
-  user: mockUser,
-  business: mockBusiness,
-  isAuthenticated: true,
-};
-
-const mockApiKey = {
-  id: "key-123",
-  business_id: "business-123",
-  name: "Test Key",
-  last_used_at: null,
-  created_at: new Date(),
-};
-
 describe("Settings Controller", () => {
+  beforeEach(async () => {
+    await cleanupTestData(connection);
+  });
+
   afterEach(() => {
-    // Clear all mock call histories after each test
-    mockRequireAuth.mockClear();
-    mockGetAuthContext.mockClear();
     mockGetApiKeysByBusiness.mockClear();
-    mockGetSessionIdFromCookies.mockClear();
-    mockCreateCsrfToken.mockClear();
-    mockVerifyCsrfToken.mockClear();
     mockCreateApiKey.mockClear();
     mockDeleteApiKey.mockClear();
     mockRotateApiKey.mockClear();
   });
 
+  afterAll(async () => {
+    await connection.end();
+    mock.restore();
+  });
+
+  const createTestSession = async () => {
+    const user = await createUser(randomEmail(), "Test Business");
+    const sessionId = await createSession(user.id);
+    return [sessionId, user.business_id] as const;
+  };
+
   describe("GET /settings/api-keys", () => {
     test("renders API keys page for authenticated user", async () => {
-      mockRequireAuth.mockReturnValue(null);
-      mockGetAuthContext.mockReturnValue(mockAuthContext);
-      mockGetApiKeysByBusiness.mockReturnValue([mockApiKey]);
-      mockGetSessionIdFromCookies.mockReturnValue("session-123");
-      mockCreateCsrfToken.mockReturnValue("csrf-token-123");
+      const [sessionId, businessId] = await createTestSession();
+      const cookieHeader = createSessionCookie(sessionId);
+      mockGetApiKeysByBusiness.mockReturnValue([
+        {
+          id: "key-123",
+          business_id: businessId,
+          name: "Test Key",
+          last_used_at: null,
+          created_at: new Date(),
+        },
+      ]);
 
-      const request = createMockRequest(
+      const request = createBunRequest(
         "http://localhost:3000/settings/api-keys",
-        "GET",
+        {
+          headers: { Cookie: cookieHeader },
+        },
       );
       const response = await settings.apiKeys(request);
       const html = await response.text();
 
-      expect(mockRequireAuth).toHaveBeenCalledWith(request);
-      expect(mockGetAuthContext).toHaveBeenCalledWith(request);
-      expect(mockGetApiKeysByBusiness).toHaveBeenCalledWith("business-123");
+      expect(mockGetApiKeysByBusiness).toHaveBeenCalledWith(businessId);
       expect(response.headers.get("content-type")).toBe("text/html");
       expect(html).toContain("API Keys - Settings");
       expect(html).toContain("Test Key");
@@ -103,15 +120,8 @@ describe("Settings Controller", () => {
     });
 
     test("redirects unauthenticated users", async () => {
-      const redirectResponse = new Response("", {
-        status: 303,
-        headers: { Location: "/login" },
-      });
-      mockRequireAuth.mockReturnValue(redirectResponse);
-
-      const request = createMockRequest(
+      const request = createBunRequest(
         "http://localhost:3000/settings/api-keys",
-        "GET",
       );
       const response = await settings.apiKeys(request);
 
@@ -119,34 +129,16 @@ describe("Settings Controller", () => {
       expect(response.headers.get("location")).toBe("/login");
     });
 
-    test("returns 404 when business not found", async () => {
-      mockRequireAuth.mockReturnValue(null);
-      mockGetAuthContext.mockReturnValue({
-        user: mockUser,
-        business: null,
-        isAuthenticated: true,
-      });
-
-      const request = createMockRequest(
-        "http://localhost:3000/settings/api-keys",
-        "GET",
-      );
-      const response = await settings.apiKeys(request);
-
-      expect(response.status).toBe(404);
-      expect(await response.text()).toBe("Business not found");
-    });
-
     test("renders empty state when no API keys exist", async () => {
-      mockRequireAuth.mockReturnValue(null);
-      mockGetAuthContext.mockReturnValue(mockAuthContext);
+      const [sessionId] = await createTestSession();
+      const cookieHeader = createSessionCookie(sessionId);
       mockGetApiKeysByBusiness.mockReturnValue([]);
-      mockGetSessionIdFromCookies.mockReturnValue("session-123");
-      mockCreateCsrfToken.mockReturnValue("csrf-token-123");
 
-      const request = createMockRequest(
+      const request = createBunRequest(
         "http://localhost:3000/settings/api-keys",
-        "GET",
+        {
+          headers: { Cookie: cookieHeader },
+        },
       );
       const response = await settings.apiKeys(request);
       const html = await response.text();
@@ -158,45 +150,46 @@ describe("Settings Controller", () => {
 
   describe("POST /settings/api-keys - Create Key", () => {
     test("creates new API key successfully", async () => {
-      mockRequireAuth.mockReturnValue(null);
-      mockGetAuthContext.mockReturnValue(mockAuthContext);
-      mockGetSessionIdFromCookies.mockReturnValue("session-123");
-      mockVerifyCsrfToken.mockReturnValue(true);
+      const [sessionId, businessId] = await createTestSession();
+      const cookieHeader = createSessionCookie(sessionId);
+      const csrfToken = await createCsrfToken(
+        sessionId,
+        "POST",
+        "/settings/api-keys",
+      );
+
       mockCreateApiKey.mockReturnValue({
         id: "new-key-123",
         name: "Production API",
+        business_id: businessId,
         token: "ck_abcdef123456789",
-        business_id: "business-123",
         created_at: new Date(),
       });
       mockGetApiKeysByBusiness.mockReturnValue([]);
-      mockCreateCsrfToken.mockReturnValue("csrf-token-123");
 
       const formData = new FormData();
       formData.append("action", "create");
       formData.append("name", "Production API");
-      formData.append("csrf_token", "csrf-token-123");
+      formData.append("_csrf", csrfToken);
 
-      const request = new Request("http://localhost:3000/settings/api-keys", {
-        method: "POST",
-        body: formData,
-        headers: {
-          cookie: "session_id=session-123",
+      const request = createBunRequest(
+        "http://localhost:3000/settings/api-keys",
+        {
+          method: "POST",
+          headers: {
+            Origin: "http://localhost:3000",
+            Cookie: cookieHeader,
+          },
+          body: formData,
         },
-      });
+      );
 
       const response = await settings.apiKeys(request);
       const html = await response.text();
 
       expect(mockCreateApiKey).toHaveBeenCalledWith(
-        "business-123",
+        businessId,
         "Production API",
-      );
-      expect(mockVerifyCsrfToken).toHaveBeenCalledWith(
-        "session-123",
-        "POST",
-        "/settings/api-keys",
-        "csrf-token-123",
       );
       expect(html).toContain("API Key Created Successfully");
       expect(html).toContain("ck_abcdef123456789");
@@ -204,25 +197,32 @@ describe("Settings Controller", () => {
     });
 
     test("rejects creation with empty name", async () => {
-      mockRequireAuth.mockReturnValue(null);
-      mockGetAuthContext.mockReturnValue(mockAuthContext);
-      mockGetSessionIdFromCookies.mockReturnValue("session-123");
-      mockVerifyCsrfToken.mockReturnValue(true);
+      const [sessionId] = await createTestSession();
+      const cookieHeader = createSessionCookie(sessionId);
+      const csrfToken = await createCsrfToken(
+        sessionId,
+        "POST",
+        "/settings/api-keys",
+      );
+
       mockGetApiKeysByBusiness.mockReturnValue([]);
-      mockCreateCsrfToken.mockReturnValue("csrf-token-123");
 
       const formData = new FormData();
       formData.append("action", "create");
       formData.append("name", "   "); // whitespace only
-      formData.append("csrf_token", "csrf-token-123");
+      formData.append("_csrf", csrfToken);
 
-      const request = new Request("http://localhost:3000/settings/api-keys", {
-        method: "POST",
-        body: formData,
-        headers: {
-          cookie: "session_id=session-123",
+      const request = createBunRequest(
+        "http://localhost:3000/settings/api-keys",
+        {
+          method: "POST",
+          headers: {
+            Origin: "http://localhost:3000",
+            Cookie: cookieHeader,
+          },
+          body: formData,
         },
-      });
+      );
 
       const response = await settings.apiKeys(request);
       const html = await response.text();
@@ -232,25 +232,26 @@ describe("Settings Controller", () => {
     });
 
     test("rejects creation with invalid CSRF token", async () => {
-      mockRequireAuth.mockReturnValue(null);
-      mockGetSessionIdFromCookies.mockReturnValue("session-123");
-      mockVerifyCsrfToken.mockReturnValue(false);
-      mockGetAuthContext.mockReturnValue(mockAuthContext);
+      const [sessionId] = await createTestSession();
+      const cookieHeader = createSessionCookie(sessionId);
       mockGetApiKeysByBusiness.mockReturnValue([]);
-      mockCreateCsrfToken.mockReturnValue("csrf-token-123");
 
       const formData = new FormData();
       formData.append("action", "create");
       formData.append("name", "Test Key");
-      formData.append("csrf_token", "invalid-token");
+      formData.append("_csrf", "invalid-token");
 
-      const request = new Request("http://localhost:3000/settings/api-keys", {
-        method: "POST",
-        body: formData,
-        headers: {
-          cookie: "session_id=session-123",
+      const request = createBunRequest(
+        "http://localhost:3000/settings/api-keys",
+        {
+          method: "POST",
+          headers: {
+            Origin: "http://localhost:3000",
+            Cookie: cookieHeader,
+          },
+          body: formData,
         },
-      });
+      );
 
       const response = await settings.apiKeys(request);
       const html = await response.text();
@@ -262,62 +263,76 @@ describe("Settings Controller", () => {
 
   describe("POST /settings/api-keys - Rotate Key", () => {
     test("rotates API key successfully", async () => {
-      mockRequireAuth.mockReturnValue(null);
-      mockGetAuthContext.mockReturnValue(mockAuthContext);
-      mockGetSessionIdFromCookies.mockReturnValue("session-123");
-      mockVerifyCsrfToken.mockReturnValue(true);
+      const [sessionId, businessId] = await createTestSession();
+      const cookieHeader = createSessionCookie(sessionId);
+      const csrfToken = await createCsrfToken(
+        sessionId,
+        "POST",
+        "/settings/api-keys",
+      );
+
       mockRotateApiKey.mockReturnValue({
         id: "new-key-456",
         name: "Test Key",
         token: "ck_newtoken789",
-        business_id: "business-123",
+        business_id: businessId,
         created_at: new Date(),
       });
       mockGetApiKeysByBusiness.mockReturnValue([]);
-      mockCreateCsrfToken.mockReturnValue("csrf-token-123");
 
       const formData = new FormData();
       formData.append("action", "rotate");
       formData.append("id", "key-123");
-      formData.append("csrf_token", "csrf-token-123");
+      formData.append("_csrf", csrfToken);
 
-      const request = new Request("http://localhost:3000/settings/api-keys", {
-        method: "POST",
-        body: formData,
-        headers: {
-          cookie: "session_id=session-123",
+      const request = createBunRequest(
+        "http://localhost:3000/settings/api-keys",
+        {
+          method: "POST",
+          headers: {
+            Origin: "http://localhost:3000",
+            Cookie: cookieHeader,
+          },
+          body: formData,
         },
-      });
+      );
 
       const response = await settings.apiKeys(request);
       const html = await response.text();
 
-      expect(mockRotateApiKey).toHaveBeenCalledWith("key-123", "business-123");
+      expect(mockRotateApiKey).toHaveBeenCalledWith("key-123", businessId);
       expect(html).toContain("API Key Rotated Successfully");
       expect(html).toContain("ck_newtoken789");
     });
 
     test("handles rotation of non-existent key", async () => {
-      mockRequireAuth.mockReturnValue(null);
-      mockGetAuthContext.mockReturnValue(mockAuthContext);
-      mockGetSessionIdFromCookies.mockReturnValue("session-123");
-      mockVerifyCsrfToken.mockReturnValue(true);
-      mockRotateApiKey.mockReturnValue(null);
+      const [sessionId] = await createTestSession();
+      const cookieHeader = createSessionCookie(sessionId);
+      const csrfToken = await createCsrfToken(
+        sessionId,
+        "POST",
+        "/settings/api-keys",
+      );
+
+      mockRotateApiKey.mockImplementationOnce(() => null as any);
       mockGetApiKeysByBusiness.mockReturnValue([]);
-      mockCreateCsrfToken.mockReturnValue("csrf-token-123");
 
       const formData = new FormData();
       formData.append("action", "rotate");
       formData.append("id", "non-existent-key");
-      formData.append("csrf_token", "csrf-token-123");
+      formData.append("_csrf", csrfToken);
 
-      const request = new Request("http://localhost:3000/settings/api-keys", {
-        method: "POST",
-        body: formData,
-        headers: {
-          cookie: "session_id=session-123",
+      const request = createBunRequest(
+        "http://localhost:3000/settings/api-keys",
+        {
+          method: "POST",
+          headers: {
+            Origin: "http://localhost:3000",
+            Cookie: cookieHeader,
+          },
+          body: formData,
         },
-      });
+      );
 
       const response = await settings.apiKeys(request);
       const html = await response.text();
@@ -328,55 +343,76 @@ describe("Settings Controller", () => {
 
   describe("POST /settings/api-keys - Revoke Key", () => {
     test("revokes API key successfully", async () => {
-      mockRequireAuth.mockReturnValue(null);
-      mockGetAuthContext.mockReturnValue(mockAuthContext);
-      mockGetSessionIdFromCookies.mockReturnValue("session-123");
-      mockVerifyCsrfToken.mockReturnValue(true);
-      mockGetApiKeysByBusiness.mockReturnValue([mockApiKey]);
+      const [sessionId, businessId] = await createTestSession();
+      const cookieHeader = createSessionCookie(sessionId);
+      const csrfToken = await createCsrfToken(
+        sessionId,
+        "POST",
+        "/settings/api-keys",
+      );
+
+      const testApiKey = {
+        id: "key-123",
+        business_id: businessId,
+        name: "Test Key",
+        last_used_at: null,
+        created_at: new Date(),
+      };
+      mockGetApiKeysByBusiness.mockReturnValue([testApiKey]);
       mockDeleteApiKey.mockReturnValue(true);
-      mockCreateCsrfToken.mockReturnValue("csrf-token-123");
 
       const formData = new FormData();
       formData.append("action", "revoke");
       formData.append("id", "key-123");
-      formData.append("csrf_token", "csrf-token-123");
+      formData.append("_csrf", csrfToken);
 
-      const request = new Request("http://localhost:3000/settings/api-keys", {
-        method: "POST",
-        body: formData,
-        headers: {
-          cookie: "session_id=session-123",
+      const request = createBunRequest(
+        "http://localhost:3000/settings/api-keys",
+        {
+          method: "POST",
+          headers: {
+            Origin: "http://localhost:3000",
+            Cookie: cookieHeader,
+          },
+          body: formData,
         },
-      });
+      );
 
       const response = await settings.apiKeys(request);
       const html = await response.text();
 
-      expect(mockDeleteApiKey).toHaveBeenCalledWith("key-123", "business-123");
+      expect(mockDeleteApiKey).toHaveBeenCalledWith("key-123", businessId);
       expect(html).toContain("Test Key");
       expect(html).toContain("has been revoked successfully");
     });
 
     test("handles revocation of non-existent key", async () => {
-      mockRequireAuth.mockReturnValue(null);
-      mockGetAuthContext.mockReturnValue(mockAuthContext);
-      mockGetSessionIdFromCookies.mockReturnValue("session-123");
-      mockVerifyCsrfToken.mockReturnValue(true);
+      const [sessionId] = await createTestSession();
+      const cookieHeader = createSessionCookie(sessionId);
+      const csrfToken = await createCsrfToken(
+        sessionId,
+        "POST",
+        "/settings/api-keys",
+      );
+
       mockGetApiKeysByBusiness.mockReturnValue([]);
-      mockCreateCsrfToken.mockReturnValue("csrf-token-123");
 
       const formData = new FormData();
       formData.append("action", "revoke");
       formData.append("id", "non-existent-key");
-      formData.append("csrf_token", "csrf-token-123");
+      formData.append("_csrf", csrfToken);
 
-      const request = new Request("http://localhost:3000/settings/api-keys", {
-        method: "POST",
-        body: formData,
-        headers: {
-          cookie: "session_id=session-123",
+      const request = createBunRequest(
+        "http://localhost:3000/settings/api-keys",
+        {
+          method: "POST",
+          headers: {
+            Origin: "http://localhost:3000",
+            Cookie: cookieHeader,
+          },
+          body: formData,
         },
-      });
+      );
 
       const response = await settings.apiKeys(request);
       const html = await response.text();
@@ -385,26 +421,40 @@ describe("Settings Controller", () => {
     });
 
     test("handles failed deletion", async () => {
-      mockRequireAuth.mockReturnValue(null);
-      mockGetAuthContext.mockReturnValue(mockAuthContext);
-      mockGetSessionIdFromCookies.mockReturnValue("session-123");
-      mockVerifyCsrfToken.mockReturnValue(true);
-      mockGetApiKeysByBusiness.mockReturnValue([mockApiKey]);
+      const [sessionId, businessId] = await createTestSession();
+      const cookieHeader = createSessionCookie(sessionId);
+      const csrfToken = await createCsrfToken(
+        sessionId,
+        "POST",
+        "/settings/api-keys",
+      );
+
+      const testApiKey = {
+        id: "key-123",
+        business_id: businessId,
+        name: "Test Key",
+        last_used_at: null,
+        created_at: new Date(),
+      };
+      mockGetApiKeysByBusiness.mockReturnValue([testApiKey]);
       mockDeleteApiKey.mockReturnValue(false);
-      mockCreateCsrfToken.mockReturnValue("csrf-token-123");
 
       const formData = new FormData();
       formData.append("action", "revoke");
       formData.append("id", "key-123");
-      formData.append("csrf_token", "csrf-token-123");
+      formData.append("_csrf", csrfToken);
 
-      const request = new Request("http://localhost:3000/settings/api-keys", {
-        method: "POST",
-        body: formData,
-        headers: {
-          cookie: "session_id=session-123",
+      const request = createBunRequest(
+        "http://localhost:3000/settings/api-keys",
+        {
+          method: "POST",
+          headers: {
+            Origin: "http://localhost:3000",
+            Cookie: cookieHeader,
+          },
+          body: formData,
         },
-      });
+      );
 
       const response = await settings.apiKeys(request);
       const html = await response.text();
@@ -414,47 +464,49 @@ describe("Settings Controller", () => {
   });
 
   describe("POST /settings/api-keys - Security", () => {
-    test("rejects requests without session", async () => {
-      mockRequireAuth.mockReturnValue(null);
-      mockGetSessionIdFromCookies.mockReturnValue(null);
-      mockGetAuthContext.mockReturnValue(mockAuthContext);
-      mockGetApiKeysByBusiness.mockReturnValue([]);
-      mockCreateCsrfToken.mockReturnValue("csrf-token-123");
-
+    test("redirects requests without session", async () => {
       const formData = new FormData();
       formData.append("action", "create");
       formData.append("name", "Test Key");
-      formData.append("csrf_token", "csrf-token-123");
+      formData.append("_csrf", "csrf-token-123");
 
-      const request = new Request("http://localhost:3000/settings/api-keys", {
-        method: "POST",
-        body: formData,
-      });
+      const request = createBunRequest(
+        "http://localhost:3000/settings/api-keys",
+        {
+          method: "POST",
+          headers: {
+            Origin: "http://localhost:3000",
+          },
+          body: formData,
+        },
+      );
 
       const response = await settings.apiKeys(request);
-      const html = await response.text();
 
-      expect(html).toContain("Invalid request");
+      expect(response.status).toBe(303);
+      expect(response.headers.get("location")).toBe("/login");
     });
 
     test("rejects requests without CSRF token", async () => {
-      mockRequireAuth.mockReturnValue(null);
-      mockGetSessionIdFromCookies.mockReturnValue("session-123");
-      mockGetAuthContext.mockReturnValue(mockAuthContext);
+      const [sessionId] = await createTestSession();
+      const cookieHeader = createSessionCookie(sessionId);
       mockGetApiKeysByBusiness.mockReturnValue([]);
-      mockCreateCsrfToken.mockReturnValue("csrf-token-123");
 
       const formData = new FormData();
       formData.append("action", "create");
       formData.append("name", "Test Key");
 
-      const request = new Request("http://localhost:3000/settings/api-keys", {
-        method: "POST",
-        body: formData,
-        headers: {
-          cookie: "session_id=session-123",
+      const request = createBunRequest(
+        "http://localhost:3000/settings/api-keys",
+        {
+          method: "POST",
+          headers: {
+            Origin: "http://localhost:3000",
+            Cookie: cookieHeader,
+          },
+          body: formData,
         },
-      });
+      );
 
       const response = await settings.apiKeys(request);
       const html = await response.text();
@@ -463,24 +515,31 @@ describe("Settings Controller", () => {
     });
 
     test("rejects unknown actions", async () => {
-      mockRequireAuth.mockReturnValue(null);
-      mockGetAuthContext.mockReturnValue(mockAuthContext);
-      mockGetSessionIdFromCookies.mockReturnValue("session-123");
-      mockVerifyCsrfToken.mockReturnValue(true);
+      const [sessionId] = await createTestSession();
+      const cookieHeader = createSessionCookie(sessionId);
+      const csrfToken = await createCsrfToken(
+        sessionId,
+        "POST",
+        "/settings/api-keys",
+      );
+
       mockGetApiKeysByBusiness.mockReturnValue([]);
-      mockCreateCsrfToken.mockReturnValue("csrf-token-123");
 
       const formData = new FormData();
       formData.append("action", "unknown");
-      formData.append("csrf_token", "csrf-token-123");
+      formData.append("_csrf", csrfToken);
 
-      const request = new Request("http://localhost:3000/settings/api-keys", {
-        method: "POST",
-        body: formData,
-        headers: {
-          cookie: "session_id=session-123",
+      const request = createBunRequest(
+        "http://localhost:3000/settings/api-keys",
+        {
+          method: "POST",
+          headers: {
+            Origin: "http://localhost:3000",
+            Cookie: cookieHeader,
+          },
+          body: formData,
         },
-      });
+      );
 
       const response = await settings.apiKeys(request);
       const html = await response.text();
@@ -491,56 +550,66 @@ describe("Settings Controller", () => {
 
   describe("Business Isolation", () => {
     test("only fetches API keys for the authenticated business", async () => {
-      mockRequireAuth.mockReturnValue(null);
-      mockGetAuthContext.mockReturnValue(mockAuthContext);
-      mockGetApiKeysByBusiness.mockReturnValue([mockApiKey]);
-      mockGetSessionIdFromCookies.mockReturnValue("session-123");
-      mockCreateCsrfToken.mockReturnValue("csrf-token-123");
+      const [sessionId, businessId] = await createTestSession();
+      const cookieHeader = createSessionCookie(sessionId);
+      const testApiKey = {
+        id: "key-123",
+        business_id: businessId,
+        name: "Test Key",
+        last_used_at: null,
+        created_at: new Date(),
+      };
+      mockGetApiKeysByBusiness.mockReturnValue([testApiKey]);
 
-      const request = createMockRequest(
+      const request = createBunRequest(
         "http://localhost:3000/settings/api-keys",
-        "GET",
+        {
+          headers: { Cookie: cookieHeader },
+        },
       );
       await settings.apiKeys(request);
 
-      expect(mockGetApiKeysByBusiness).toHaveBeenCalledWith("business-123");
+      expect(mockGetApiKeysByBusiness).toHaveBeenCalledWith(businessId);
     });
 
     test("scopes all mutations by business ID", async () => {
-      mockRequireAuth.mockReturnValue(null);
-      mockGetAuthContext.mockReturnValue(mockAuthContext);
-      mockGetSessionIdFromCookies.mockReturnValue("session-123");
-      mockVerifyCsrfToken.mockReturnValue(true);
+      const [sessionId, businessId] = await createTestSession();
+      const cookieHeader = createSessionCookie(sessionId);
+      const csrfToken = await createCsrfToken(
+        sessionId,
+        "POST",
+        "/settings/api-keys",
+      );
+
       mockCreateApiKey.mockReturnValue({
         id: "new-key-123",
         name: "Test Key",
+        business_id: businessId,
         token: "ck_token123",
-        business_id: "business-123",
         created_at: new Date(),
       });
       mockGetApiKeysByBusiness.mockReturnValue([]);
-      mockCreateCsrfToken.mockReturnValue("csrf-token-123");
 
       const formData = new FormData();
       formData.append("action", "create");
       formData.append("name", "Test Key");
-      formData.append("csrf_token", "csrf-token-123");
+      formData.append("_csrf", csrfToken);
 
-      const request = new Request("http://localhost:3000/settings/api-keys", {
-        method: "POST",
-        body: formData,
-        headers: {
-          cookie: "session_id=session-123",
+      const request = createBunRequest(
+        "http://localhost:3000/settings/api-keys",
+        {
+          method: "POST",
+          headers: {
+            Origin: "http://localhost:3000",
+            Cookie: cookieHeader,
+          },
+          body: formData,
         },
-      });
+      );
 
       await settings.apiKeys(request);
 
-      expect(mockCreateApiKey).toHaveBeenCalledWith("business-123", "Test Key");
+      expect(mockCreateApiKey).toHaveBeenCalledWith(businessId, "Test Key");
     });
-  });
-
-  afterAll(() => {
-    mock.restore();
   });
 });

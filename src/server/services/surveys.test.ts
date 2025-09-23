@@ -17,7 +17,6 @@ mock.module("./database", () => ({
   },
 }));
 
-import { db } from "./database";
 import {
   createSurvey,
   findSurvey,
@@ -36,7 +35,7 @@ const getTokenForScore = async (
   surveyId: string,
   score: number,
 ): Promise<string> => {
-  const result = await db`
+  const result = await connection`
     SELECT sl.token FROM survey_links sl
     JOIN surveys s ON sl.survey_id = s.id
     WHERE s.business_id = ${businessId} 
@@ -56,7 +55,7 @@ const getSurveyId = async (
   businessId: string,
   surveyId: string,
 ): Promise<string> => {
-  const result = await db`
+  const result = await connection`
     SELECT id FROM surveys 
     WHERE business_id = ${businessId} AND survey_id = ${surveyId}
     LIMIT 1
@@ -97,12 +96,13 @@ describe("Surveys Service with PostgreSQL", () => {
   let testBusinessId: string;
 
   beforeEach(async () => {
-    await cleanupTestData(db);
-    testBusinessId = await createTestBusiness(db);
+    await cleanupTestData(connection);
+    testBusinessId = await createTestBusiness(connection);
   });
 
   afterAll(async () => {
     await connection.end();
+    mock.restore();
   });
 
   describe("createSurvey", () => {

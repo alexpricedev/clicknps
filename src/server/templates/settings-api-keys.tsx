@@ -117,7 +117,7 @@ export const ApiKeysSettings = (props: ApiKeysSettingsProps): JSX.Element => {
               className="space-y-4"
             >
               {csrfToken && (
-                <input type="hidden" name="csrf_token" value={csrfToken} />
+                <input type="hidden" name="_csrf" value={csrfToken} />
               )}
               <input type="hidden" name="action" value="create" />
 
@@ -254,7 +254,7 @@ export const ApiKeysSettings = (props: ApiKeysSettingsProps): JSX.Element => {
                             {csrfToken && (
                               <input
                                 type="hidden"
-                                name="csrf_token"
+                                name="_csrf"
                                 value={csrfToken}
                               />
                             )}
@@ -276,7 +276,7 @@ export const ApiKeysSettings = (props: ApiKeysSettingsProps): JSX.Element => {
                             {csrfToken && (
                               <input
                                 type="hidden"
-                                name="csrf_token"
+                                name="_csrf"
                                 value={csrfToken}
                               />
                             )}

@@ -19,12 +19,12 @@ import {
   createUser,
 } from "../../services/auth";
 import { createCsrfToken } from "../../services/csrf";
-import { db } from "../../services/database";
+import { computeHMAC } from "../../utils/crypto";
 import { logout } from "./logout";
 
 describe("Logout Controller", () => {
   beforeEach(async () => {
-    await cleanupTestData(db);
+    await cleanupTestData(connection);
   });
 
   afterAll(async () => {
@@ -67,9 +67,8 @@ describe("Logout Controller", () => {
       expect(setCookie).toContain("Max-Age=0");
 
       // Session should be deleted from database
-      const { computeHMAC } = await import("../../utils/crypto");
       const sessionIdHash = computeHMAC(sessionId);
-      const sessions = await db`
+      const sessions = await connection`
         SELECT id_hash FROM sessions WHERE id_hash = ${sessionIdHash}
       `;
       expect(sessions).toHaveLength(0);
@@ -152,9 +151,8 @@ describe("Logout Controller", () => {
       expect(response.headers.get("location")).toBe("/login");
 
       // Correct session should be deleted
-      const { computeHMAC } = await import("../../utils/crypto");
       const sessionIdHash = computeHMAC(sessionId);
-      const sessions = await db`
+      const sessions = await connection`
         SELECT id_hash FROM sessions WHERE id_hash = ${sessionIdHash}
       `;
       expect(sessions).toHaveLength(0);
@@ -166,7 +164,7 @@ describe("Logout Controller", () => {
       const sessionId = await createSession(user.id);
 
       // Delete user (this will cascade delete the session in real DB, but might cause errors in test)
-      await db`DELETE FROM users WHERE id = ${user.id}`;
+      await connection`DELETE FROM users WHERE id = ${user.id}`;
 
       const request = new Request("http://localhost:3000/auth/logout", {
         method: "POST",

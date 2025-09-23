@@ -37,6 +37,7 @@ describe("Auth Service with PostgreSQL", () => {
 
   afterAll(async () => {
     await connection.end();
+    mock.restore();
   });
 
   describe("createUser", () => {

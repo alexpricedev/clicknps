@@ -20,6 +20,10 @@ mock.module("../../middleware/auth", () => ({
 import { home } from "./home";
 
 describe("Home Controller", () => {
+  afterAll(() => {
+    mock.restore();
+  });
+
   describe("GET /", () => {
     test("renders home page with visitor stats", async () => {
       const mockStats = createMockVisitorStats({
@@ -50,9 +54,5 @@ describe("Home Controller", () => {
       // The HTML should contain the POST method somewhere
       expect(html).toContain("POST");
     });
-  });
-
-  afterAll(() => {
-    mock.restore();
   });
 });

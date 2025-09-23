@@ -29,12 +29,9 @@ export const logout = {
         return csrfResponse;
       }
 
+      // Delete the session from database
       if (sessionId) {
-        try {
-          await deleteSession(sessionId);
-        } catch {
-          // Session deletion failed, but still clear cookie for security
-        }
+        await deleteSession(sessionId);
       }
     }
 

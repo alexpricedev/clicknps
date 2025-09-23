@@ -61,7 +61,7 @@ async function handleApiKeyActions(
 ): Promise<Response> {
   const formData = await req.formData();
   const action = formData.get("action") as string;
-  const csrfToken = formData.get("csrf_token") as string;
+  const csrfToken = formData.get("_csrf") as string;
 
   // Validate CSRF token
   const cookieHeader = req.headers.get("cookie");
