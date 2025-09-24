@@ -182,6 +182,75 @@ export const findSurveyLinkByToken = async (
 };
 
 /**
+ * Find survey link with survey and business details for webhook queueing
+ */
+export const findSurveyLinkWithDetails = async (
+  token: string,
+): Promise<{
+  surveyLink: SurveyLink;
+  survey: Survey;
+} | null> => {
+  const result = await db`
+    SELECT 
+      sl.id as link_id, sl.token, sl.survey_id as link_survey_id, 
+      sl.subject_id, sl.score, sl.expires_at, sl.created_at as link_created_at,
+      s.id as survey_id, s.business_id, s.survey_id as survey_name, 
+      s.title, s.description, s.ttl_days, s.created_at as survey_created_at
+    FROM survey_links sl
+    JOIN surveys s ON sl.survey_id = s.id
+    WHERE sl.token = ${token}
+  `;
+
+  if (result.length === 0) {
+    return null;
+  }
+
+  const row = result[0] as {
+    link_id: string;
+    token: string;
+    link_survey_id: string;
+    subject_id: string;
+    score: number;
+    expires_at: Date;
+    link_created_at: Date;
+    survey_id: string;
+    business_id: string;
+    survey_name: string;
+    title: string;
+    description: string | null;
+    ttl_days: number;
+    survey_created_at: Date;
+  };
+
+  // Check if link has expired
+  if (new Date() > row.expires_at) {
+    return null;
+  }
+
+  const surveyLink: SurveyLink = {
+    id: row.link_id,
+    token: row.token,
+    survey_id: row.link_survey_id,
+    subject_id: row.subject_id,
+    score: row.score,
+    expires_at: row.expires_at,
+    created_at: row.link_created_at,
+  };
+
+  const survey: Survey = {
+    id: row.survey_id,
+    business_id: row.business_id,
+    survey_id: row.survey_name,
+    title: row.title,
+    description: row.description,
+    ttl_days: row.ttl_days,
+    created_at: row.survey_created_at,
+  };
+
+  return { surveyLink, survey };
+};
+
+/**
  * Check if a response already exists for this survey link
  * Used for deduplication
  */

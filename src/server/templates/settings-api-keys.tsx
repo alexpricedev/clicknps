@@ -1,5 +1,6 @@
 import type { JSX } from "react";
 import { Layout } from "../components/layouts";
+import { SettingsNav } from "../components/settings-nav";
 import type { ApiKeysState } from "../controllers/app/settings";
 import type { AuthContext } from "../middleware/auth";
 
@@ -40,11 +41,15 @@ export const ApiKeysSettings = (props: ApiKeysSettingsProps): JSX.Element => {
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-2">API Keys</h1>
-            <p className="text-gray-600">
-              Manage API keys for your business. Use these keys to authenticate
-              with our API.
-            </p>
+            <h1 className="text-3xl font-bold mb-4">Settings</h1>
+            <SettingsNav currentPage="api-keys" />
+            <div className="mb-4">
+              <h2 className="text-2xl font-semibold mb-2">API Keys</h2>
+              <p className="text-gray-600">
+                Manage API keys for your business. Use these keys to
+                authenticate with our API.
+              </p>
+            </div>
           </div>
 
           {/* Success Messages */}

@@ -7,7 +7,15 @@ import {
 } from "../../services/api-keys";
 import { getSessionIdFromCookies } from "../../services/auth";
 import { createCsrfToken, verifyCsrfToken } from "../../services/csrf";
+import {
+  getRecentWebhookDeliveries,
+  getWebhookSettings,
+  sendTestWebhook,
+  updateWebhookSettings,
+} from "../../services/webhooks";
 import { ApiKeysSettings } from "../../templates/settings-api-keys";
+import type { WebhookState } from "../../templates/settings-webhooks";
+import { WebhookSettings } from "../../templates/settings-webhooks";
 import { render } from "../../utils/response";
 
 export interface ApiKeysState {
@@ -51,6 +59,40 @@ export const settings = {
 
     return render(
       <ApiKeysSettings auth={auth} apiKeys={apiKeys} csrfToken={csrfToken} />,
+    );
+  },
+
+  async webhooks(req: Request): Promise<Response> {
+    // Check authentication
+    const authResponse = await requireAuth(req);
+    if (authResponse) return authResponse;
+
+    const auth = await getAuthContext(req);
+
+    if (!auth.business) {
+      return new Response("Business not found", { status: 404 });
+    }
+
+    if (req.method === "POST") {
+      return await handleWebhookActions(req, auth.business.id);
+    }
+
+    // GET request - display the page
+    const [webhookSettings, recentDeliveries, csrfToken] = await Promise.all([
+      getWebhookSettings(auth.business.id),
+      getRecentWebhookDeliveries(auth.business.id),
+      generateWebhookCsrfToken(req),
+    ]);
+
+    return render(
+      <WebhookSettings
+        auth={auth}
+        webhookSettings={
+          webhookSettings || { webhook_url: null, webhook_secret: null }
+        }
+        recentDeliveries={recentDeliveries}
+        csrfToken={csrfToken}
+      />,
     );
   },
 };
@@ -214,4 +256,164 @@ async function generateCsrfToken(req: Request): Promise<string | null> {
   if (!sessionId) return null;
 
   return await createCsrfToken(sessionId, "POST", "/settings/api-keys");
+}
+
+async function handleWebhookActions(
+  req: Request,
+  businessId: string,
+): Promise<Response> {
+  const formData = await req.formData();
+  const action = formData.get("action") as string;
+  const csrfToken = formData.get("_csrf") as string;
+
+  // Validate CSRF token
+  const cookieHeader = req.headers.get("cookie");
+  const sessionId = getSessionIdFromCookies(cookieHeader);
+
+  if (!sessionId || !csrfToken) {
+    return createWebhookErrorResponse(req, businessId, "Invalid request");
+  }
+
+  const isValidCsrf = await verifyCsrfToken(
+    sessionId,
+    "POST",
+    "/settings/webhooks",
+    csrfToken,
+  );
+  if (!isValidCsrf) {
+    return createWebhookErrorResponse(
+      req,
+      businessId,
+      "Invalid security token",
+    );
+  }
+
+  try {
+    switch (action) {
+      case "update": {
+        const webhookUrl = formData.get("webhook_url") as string;
+        const webhookSecret = formData.get("webhook_secret") as string;
+
+        if (!webhookUrl?.trim()) {
+          return createWebhookErrorResponse(
+            req,
+            businessId,
+            "Webhook URL is required",
+          );
+        }
+
+        // Validate URL format
+        try {
+          new URL(webhookUrl.trim());
+        } catch {
+          return createWebhookErrorResponse(
+            req,
+            businessId,
+            "Invalid webhook URL format",
+          );
+        }
+
+        const result = await updateWebhookSettings(
+          businessId,
+          webhookUrl.trim(),
+          webhookSecret?.trim() || null,
+        );
+
+        return createWebhookSuccessResponse(req, businessId, {
+          updated: {
+            webhook_url: result.webhook_url ?? "",
+            webhook_secret: result.webhook_secret ?? "",
+          },
+        });
+      }
+
+      case "test": {
+        const result = await sendTestWebhook(businessId);
+
+        if (result.success) {
+          return createWebhookSuccessResponse(req, businessId, {
+            testSuccess: {
+              statusCode: result.statusCode,
+            },
+          });
+        }
+        return createWebhookSuccessResponse(req, businessId, {
+          testError: {
+            statusCode: result.statusCode,
+            message: result.responseBody,
+          },
+        });
+      }
+
+      default:
+        return createWebhookErrorResponse(req, businessId, "Invalid action");
+    }
+  } catch (error) {
+    return createWebhookErrorResponse(
+      req,
+      businessId,
+      error instanceof Error
+        ? error.message
+        : "An error occurred while processing your request",
+    );
+  }
+}
+
+async function createWebhookSuccessResponse(
+  req: Request,
+  businessId: string,
+  state: WebhookState,
+): Promise<Response> {
+  const auth = await getAuthContext(req);
+  const [webhookSettings, recentDeliveries, csrfToken] = await Promise.all([
+    getWebhookSettings(businessId),
+    getRecentWebhookDeliveries(businessId),
+    generateWebhookCsrfToken(req),
+  ]);
+
+  return render(
+    <WebhookSettings
+      auth={auth}
+      webhookSettings={
+        webhookSettings || { webhook_url: null, webhook_secret: null }
+      }
+      recentDeliveries={recentDeliveries}
+      state={state}
+      csrfToken={csrfToken}
+    />,
+  );
+}
+
+async function createWebhookErrorResponse(
+  req: Request,
+  businessId: string,
+  error: string,
+): Promise<Response> {
+  const auth = await getAuthContext(req);
+  const [webhookSettings, recentDeliveries, csrfToken] = await Promise.all([
+    getWebhookSettings(businessId),
+    getRecentWebhookDeliveries(businessId),
+    generateWebhookCsrfToken(req),
+  ]);
+
+  return render(
+    <WebhookSettings
+      auth={auth}
+      webhookSettings={
+        webhookSettings || { webhook_url: null, webhook_secret: null }
+      }
+      recentDeliveries={recentDeliveries}
+      state={{ error }}
+      csrfToken={csrfToken}
+    />,
+  );
+}
+
+async function generateWebhookCsrfToken(req: Request): Promise<string | null> {
+  const cookieHeader = req.headers.get("cookie");
+  const sessionId = getSessionIdFromCookies(cookieHeader);
+
+  if (!sessionId) return null;
+
+  return await createCsrfToken(sessionId, "POST", "/settings/webhooks");
 }
