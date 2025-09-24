@@ -77,9 +77,10 @@ describe("Webhook Queue Worker", () => {
 
   describe("webhook processing", () => {
     let mockEndpoint: ReturnType<typeof mockWebhookEndpoint>;
+    let testPort = 11000; // Start from port 11000 for queue worker tests
 
     beforeEach(() => {
-      mockEndpoint = mockWebhookEndpoint();
+      mockEndpoint = mockWebhookEndpoint(testPort++); // Use different port for each test
     });
 
     afterEach(() => {
@@ -162,28 +163,36 @@ describe("Webhook Queue Worker", () => {
       expect(queueItems[0].response_status_code).toBe(0);
     });
 
-    test.skip("processes retry webhooks", async () => {
+    test("processes retry webhooks", async () => {
       const businessId = await createTestBusiness(connection, "Test Business");
 
       // Create a failed webhook ready for retry
-      const retryDate = new Date();
-      retryDate.setMinutes(retryDate.getMinutes() - 1);
-
-      await createTestWebhook(businessId, {
+      const webhookId = await createTestWebhook(businessId, {
         webhookUrl: mockEndpoint.url,
+        webhookSecret: "test_secret",
         status: "failed",
-        scheduledFor: new Date(), // Original schedule doesn't matter for retries
+        scheduledFor: new Date(),
       });
 
-      // Update to set retry time in the past
-      await advanceWebhookTime(3600); // Advance by 1 hour
+      // Update the webhook to set retry fields (attempts, next_retry_at in the past)
+      const pastRetryTime = new Date();
+      pastRetryTime.setMinutes(pastRetryTime.getMinutes() - 5);
+
+      await connection`
+        UPDATE webhook_queue 
+        SET 
+          attempts = 1,
+          next_retry_at = ${pastRetryTime},
+          last_attempt_at = ${pastRetryTime}
+        WHERE id = ${webhookId}
+      `;
 
       await processWebhookQueue();
 
       // Should be delivered now
       const queueItems = await getWebhookQueueItems(businessId);
       expect(queueItems[0].status).toBe("delivered");
-      expect(queueItems[0].attempts).toBe(1);
+      expect(queueItems[0].attempts).toBe(2); // Should be 2 after retry
 
       const received = mockEndpoint.getReceivedWebhooks();
       expect(received).toHaveLength(1);
@@ -221,7 +230,7 @@ describe("Webhook Queue Worker", () => {
       expect(received.length).toBeGreaterThan(0);
     });
 
-    test.skip("prevents duplicate processing", async () => {
+    test("prevents duplicate processing", async () => {
       const businessId = await createTestBusiness(connection, "Test Business");
 
       const pastDate = new Date();
@@ -248,16 +257,17 @@ describe("Webhook Queue Worker", () => {
 
   describe("integration tests", () => {
     let mockEndpoint: ReturnType<typeof mockWebhookEndpoint>;
+    let integrationTestPort = 12000; // Start from port 12000 for integration tests
 
     beforeEach(() => {
-      mockEndpoint = mockWebhookEndpoint();
+      mockEndpoint = mockWebhookEndpoint(integrationTestPort++); // Use different port for each test
     });
 
     afterEach(() => {
       mockEndpoint.cleanup();
     });
 
-    test.skip("end-to-end webhook processing with worker", async () => {
+    test("end-to-end webhook processing with worker", async () => {
       const businessId = await createTestBusiness(connection, "Test Business");
 
       // Create webhook ready for processing
