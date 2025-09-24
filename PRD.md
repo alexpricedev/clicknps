@@ -54,7 +54,7 @@ Goal: Provide the **simplest, cheapest, most privacy-safe NPS tool** for small b
 
 ### 4.4 Webhook Delivery
 - Configurable endpoint per customer.  
-- Webhook fires after **90s delay** to allow time for optional comment.  
+- Webhook fires after **180s delay** to allow time for optional comment.  
 - **Payload example**:
 
 ```json
