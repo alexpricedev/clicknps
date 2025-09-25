@@ -14,7 +14,7 @@ type LayoutProps = {
  */
 export function Layout({ title, name, children }: LayoutProps) {
   return (
-    <html lang="en">
+    <html lang="en" data-theme="dracula">
       <head>
         <meta charSet="utf-8" />
         <meta
@@ -24,14 +24,11 @@ export function Layout({ title, name, children }: LayoutProps) {
         <title>{title}</title>
         <link rel="stylesheet" href="/assets/main.css" />
       </head>
-      <body data-page={name} data-component="layout">
-        <header>
-          <a href="/" className="logo">
-            <img src="/logo.png" alt="logo" />
-          </a>
+      <body data-page={name}>
+        <header className="shadow-sm">
           <Nav page={name} />
         </header>
-        <main>{children}</main>
+        <main className="container mx-auto">{children}</main>
         <script type="module" src="/assets/main.js" />
       </body>
     </html>
@@ -49,7 +46,7 @@ type BaseLayoutProps = {
  */
 export function BaseLayout({ title, children }: BaseLayoutProps) {
   return (
-    <html lang="en">
+    <html lang="en" data-theme="dracula">
       <head>
         <meta charSet="utf-8" />
         <meta
