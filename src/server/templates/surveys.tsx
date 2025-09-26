@@ -1,5 +1,6 @@
 import type { JSX } from "react";
 import { Layout } from "../components/layouts";
+import type { AuthContext } from "../middleware/auth";
 import type { Survey } from "../services/surveys";
 
 export interface SurveysState {
@@ -11,19 +12,28 @@ export interface SurveysState {
 
 type PublicSurveysProps = {
   isAuthenticated: false;
+  auth?: AuthContext;
+  csrfToken?: string | null;
 };
 
 type AuthSurveysProps = {
   isAuthenticated: true;
   surveys: Survey[];
   state?: SurveysState;
+  auth?: AuthContext;
+  csrfToken?: string | null;
 };
 
 export type SurveysProps = PublicSurveysProps | AuthSurveysProps;
 
 export const Surveys = (props: SurveysProps): JSX.Element => {
   return (
-    <Layout title="Surveys" name="surveys">
+    <Layout
+      title="Surveys"
+      name="surveys"
+      auth={props.auth}
+      csrfToken={props.csrfToken}
+    >
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">
           <div>

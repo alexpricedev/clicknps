@@ -1,7 +1,13 @@
 import { Layout } from "@server/components/layouts";
+import type { AuthContext } from "@server/middleware/auth";
 
-export const Contact = () => (
-  <Layout title="Contact" name="contact">
+type ContactProps = {
+  auth?: AuthContext;
+  csrfToken?: string | null;
+};
+
+export const Contact = ({ auth, csrfToken }: ContactProps) => (
+  <Layout title="Contact" name="contact" auth={auth} csrfToken={csrfToken}>
     <h1>Contact Page</h1>
 
     <section className="card">

@@ -1,8 +1,14 @@
 import { Layout } from "@server/components/layouts";
 import { MyParagraph } from "@server/components/my-paragraph";
+import type { AuthContext } from "@server/middleware/auth";
 
-export const About = () => (
-  <Layout title="About" name="about">
+type AboutProps = {
+  auth?: AuthContext;
+  csrfToken?: string | null;
+};
+
+export const About = ({ auth, csrfToken }: AboutProps) => (
+  <Layout title="About" name="about" auth={auth} csrfToken={csrfToken}>
     <h1>About Page</h1>
     <section className="card">
       <p>

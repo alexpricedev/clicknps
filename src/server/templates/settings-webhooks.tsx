@@ -1,6 +1,5 @@
 import type { JSX } from "react";
 import { Layout } from "../components/layouts";
-import { SettingsNav } from "../components/settings-nav";
 import type { AuthContext } from "../middleware/auth";
 import type { WebhookQueueItem } from "../services/webhooks";
 
@@ -81,14 +80,17 @@ export const WebhookSettings = (props: WebhookSettingsProps): JSX.Element => {
   };
 
   return (
-    <Layout title="Webhooks - Settings" name="settings">
+    <Layout
+      title="Webhooks - Settings"
+      name="webhooks"
+      auth={props.auth}
+      csrfToken={props.csrfToken}
+    >
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-4">Settings</h1>
-            <SettingsNav currentPage="webhooks" />
             <div className="mb-4">
-              <h2 className="text-2xl font-semibold mb-2">Webhooks</h2>
+              <h1 className="text-3xl font-bold mb-2">Webhooks</h1>
               <p className="text-gray-600">
                 Configure webhook delivery for survey responses. Webhooks are
                 sent after a 180-second delay to allow for optional comments.

@@ -37,8 +37,19 @@ export const surveys = {
   async index(req: BunRequest): Promise<Response> {
     const auth = await getAuthContext(req);
 
+    let csrfToken: string | null = null;
+    if (auth.isAuthenticated) {
+      const cookieHeader = req.headers.get("cookie");
+      const sessionId = getSessionIdFromCookies(cookieHeader);
+      if (sessionId) {
+        csrfToken = await createCsrfToken(sessionId, "POST", "/auth/logout");
+      }
+    }
+
     if (!auth.isAuthenticated || !auth.business) {
-      return render(<Surveys isAuthenticated={false} />);
+      return render(
+        <Surveys isAuthenticated={false} auth={auth} csrfToken={csrfToken} />,
+      );
     }
 
     const url = new URL(req.url);
@@ -46,7 +57,13 @@ export const surveys = {
     const surveysList = await listSurveys(auth.business.id);
 
     return render(
-      <Surveys isAuthenticated={true} surveys={surveysList} state={state} />,
+      <Surveys
+        isAuthenticated={true}
+        surveys={surveysList}
+        state={state}
+        auth={auth}
+        csrfToken={csrfToken}
+      />,
     );
   },
 

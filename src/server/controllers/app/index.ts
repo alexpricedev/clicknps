@@ -1,7 +1,14 @@
 export { about } from "./about";
+export { billing } from "./billing";
 export { contact } from "./contact";
+export { dashboard } from "./dashboard";
+export { docs } from "./docs";
 export { examples } from "./examples";
 export { home } from "./home";
+export { pricing } from "./pricing";
+export { profile } from "./profile";
 export { responsesController } from "./responses";
 export { settings } from "./settings";
+export { support } from "./support";
 export { surveys } from "./surveys";
+export { team } from "./team";

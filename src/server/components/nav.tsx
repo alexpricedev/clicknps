@@ -1,13 +1,33 @@
-const navLinks = [
+import type { AuthContext } from "../middleware/auth";
+import { CsrfField } from "./csrf-field";
+
+const guestNavLinks = [
   { href: "/", label: "Home", name: "home" },
-  { href: "/about", label: "About", name: "about" },
-  { href: "/examples", label: "Examples", name: "examples" },
-  { href: "/surveys", label: "Surveys", name: "surveys" },
-  { href: "/settings/api-keys", label: "Settings", name: "settings" },
-  { href: "/contact", label: "Contact", name: "contact" },
+  { href: "/pricing", label: "Pricing", name: "pricing" },
+  { href: "/docs", label: "Docs", name: "docs" },
 ];
 
-export const Nav = ({ page }: { page: string }) => (
+const authNavLinks = [
+  { href: "/dashboard", label: "Dashboard", name: "dashboard" },
+  { href: "/surveys", label: "Surveys", name: "surveys" },
+];
+
+const settingsLinks = [
+  { href: "/settings/api-keys", label: "API Keys" },
+  { href: "/settings/webhooks", label: "Webhooks" },
+  { href: "/settings/billing", label: "Billing & usage" },
+  { href: "/settings/profile", label: "Profile" },
+  { href: "/settings/team", label: "Team" },
+  { href: "/settings/support", label: "Support" },
+];
+
+type NavProps = {
+  page: string;
+  auth?: AuthContext;
+  csrfToken?: string | null;
+};
+
+export const Nav = ({ page, auth, csrfToken }: NavProps) => (
   <div className="navbar container mx-auto px-0">
     <div className="flex-1">
       <a
@@ -35,20 +55,81 @@ export const Nav = ({ page }: { page: string }) => (
         ClickNPS
       </a>
     </div>
-    <div className="flex-none">
-      <ul className="menu menu-horizontal px-0 space-x-2">
-        {navLinks.map(({ href, label, name }) => (
-          <li key={name}>
+    <div className="flex grow justify-end align-middle">
+      {auth?.isAuthenticated ? (
+        <div className="flex items-stretch">
+          {authNavLinks.map(({ href, label, name }) => (
             <a
+              key={name}
               href={href}
-              className={page === name ? "btn btn-active" : "btn btn-ghost"}
+              className={
+                page === name
+                  ? "btn btn-ghost text-primary rounded-btn"
+                  : "btn btn-ghost hover:text-primary rounded-btn"
+              }
               aria-current={page === name ? "page" : undefined}
             >
               {label}
             </a>
-          </li>
-        ))}
-      </ul>
+          ))}
+          <div className="dropdown dropdown-end">
+            <button
+              type="button"
+              className="btn btn-ghost hover:text-primary rounded-btn"
+            >
+              Settings
+              <svg
+                className="fill-current"
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+              >
+                <title>Settings dropdown arrow</title>
+                <path d="m7 10 5 5 5-5z" />
+              </svg>
+            </button>
+            <ul className="menu dropdown-content bg-base-300 rounded-b-box z-[1] mt-2 w-52 p-2 shadow-sm">
+              {settingsLinks.map(({ href, label }) => (
+                <li key={href}>
+                  <a href={href}>{label}</a>
+                </li>
+              ))}
+              <li>
+                <form method="POST" action="/auth/logout">
+                  <CsrfField token={csrfToken || null} />
+                  <button type="submit" className="w-full text-left">
+                    Log out
+                  </button>
+                </form>
+              </li>
+            </ul>
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-stretch">
+          {guestNavLinks.map(({ href, label, name }) => (
+            <a
+              key={name}
+              href={href}
+              className={
+                page === name
+                  ? "btn btn-active rounded-btn"
+                  : "btn btn-ghost rounded-btn"
+              }
+              aria-current={page === name ? "page" : undefined}
+            >
+              {label}
+            </a>
+          ))}
+          <a href="/login" className="btn btn-outline btn-primary rounded-btn">
+            Log in
+          </a>
+          <a href="/signup" className="btn btn-primary rounded-btn">
+            Sign up free
+          </a>
+        </div>
+      )}
     </div>
   </div>
 );

@@ -1,11 +1,18 @@
 import {
   about,
+  billing,
   contact,
+  dashboard,
+  docs,
   examples,
   home,
+  pricing,
+  profile,
   responsesController,
   settings,
+  support,
   surveys,
+  team,
 } from "../controllers/app";
 import { callback, login, logout, signup } from "../controllers/auth";
 import { createRouteHandler } from "../utils/route-handler";
@@ -14,6 +21,9 @@ export const appRoutes = {
   "/": home.index,
   "/about": about.index,
   "/contact": contact.index,
+  "/pricing": pricing.index,
+  "/docs": docs.index,
+  "/dashboard": dashboard.index,
   "/examples": createRouteHandler({
     GET: examples.index,
     POST: examples.create,
@@ -43,6 +53,10 @@ export const appRoutes = {
     GET: settings.webhooks,
     POST: settings.webhooks,
   }),
+  "/settings/billing": billing.index,
+  "/settings/profile": profile.index,
+  "/settings/team": team.index,
+  "/settings/support": support.index,
   "/login": createRouteHandler({
     GET: login.index,
     POST: login.create,

@@ -9,7 +9,12 @@ export const Home = (props: {
   auth: AuthContext;
   csrfToken: string | null;
 }) => (
-  <Layout title="Home" name="home">
+  <Layout
+    title="Home"
+    name="home"
+    auth={props.auth}
+    csrfToken={props.csrfToken}
+  >
     <div className="flex justify-between items-center mb-6">
       <h1>Home Page</h1>
       <div className="flex items-center gap-4">

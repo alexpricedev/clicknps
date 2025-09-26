@@ -3,6 +3,10 @@ import type { JSX } from "react";
 const settingsLinks = [
   { href: "/settings/api-keys", label: "API Keys", name: "api-keys" },
   { href: "/settings/webhooks", label: "Webhooks", name: "webhooks" },
+  { href: "/settings/billing", label: "Billing & usage", name: "billing" },
+  { href: "/settings/profile", label: "Profile", name: "profile" },
+  { href: "/settings/team", label: "Team", name: "team" },
+  { href: "/settings/support", label: "Support", name: "support" },
 ];
 
 export interface SettingsNavProps {

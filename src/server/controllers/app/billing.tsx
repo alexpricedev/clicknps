@@ -1,11 +1,14 @@
-import { getAuthContext } from "../../middleware/auth";
+import { getAuthContext, requireAuth } from "../../middleware/auth";
 import { getSessionIdFromCookies } from "../../services/auth";
 import { createCsrfToken } from "../../services/csrf";
-import { About } from "../../templates/about";
+import { Billing } from "../../templates/billing";
 import { render } from "../../utils/response";
 
-export const about = {
+export const billing = {
   async index(req: Request): Promise<Response> {
+    const authRequired = await requireAuth(req);
+    if (authRequired) return authRequired;
+
     const auth = await getAuthContext(req);
 
     let csrfToken: string | null = null;
@@ -17,6 +20,6 @@ export const about = {
       }
     }
 
-    return render(<About auth={auth} csrfToken={csrfToken} />);
+    return render(<Billing auth={auth} csrfToken={csrfToken} />);
   },
 };
