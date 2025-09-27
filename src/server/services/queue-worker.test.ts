@@ -19,6 +19,8 @@ import {
 } from "../test-utils/webhooks";
 import {
   getWorkerStatus,
+  processQueueNow,
+  processWebhookItem,
   processWebhookQueue,
   startWebhookWorker,
   stopWebhookWorker,
@@ -253,6 +255,23 @@ describe("Webhook Queue Worker", () => {
       const received = mockEndpoint.getReceivedWebhooks();
       expect(received).toHaveLength(1);
     });
+
+    test("processQueueNow processes queue immediately", async () => {
+      const businessId = await createTestBusiness(connection, "Test Business");
+
+      await createTestWebhook(businessId, {
+        webhookUrl: mockEndpoint.url,
+        webhookSecret: "test_secret",
+        scheduledFor: new Date(Date.now() - 10000), // 10 seconds ago
+        status: "pending",
+      });
+
+      // Use processQueueNow instead of processWebhookQueue
+      await processQueueNow();
+
+      const queueItems = await getWebhookQueueItems(businessId);
+      expect(queueItems[0].status).toBe("delivered");
+    });
   });
 
   describe("integration tests", () => {
@@ -303,6 +322,313 @@ describe("Webhook Queue Worker", () => {
       expect(received[0].headers["x-clicknps-signature"]).toStartWith(
         "sha256=",
       );
+    });
+  });
+
+  describe("processWebhookItem integration", () => {
+    let integrationMockEndpoint: ReturnType<typeof mockWebhookEndpoint>;
+    let integrationTestPort = 14000; // Start from port 14000 for processWebhookItem tests
+
+    beforeEach(() => {
+      integrationMockEndpoint = mockWebhookEndpoint(integrationTestPort++);
+    });
+
+    afterEach(() => {
+      integrationMockEndpoint.cleanup();
+    });
+
+    describe("successful webhook delivery", () => {
+      test("processes webhook successfully and updates database", async () => {
+        const businessId = await createTestBusiness(
+          connection,
+          "Test Business",
+        );
+
+        await createTestWebhook(businessId, {
+          surveyId: "test_survey",
+          subjectId: "test_user",
+          score: 9,
+          comment: "Great service!",
+          webhookUrl: integrationMockEndpoint.url,
+          webhookSecret: "test_secret",
+          scheduledFor: new Date(),
+          status: "pending",
+        });
+
+        const queueItems = await getWebhookQueueItems(businessId);
+        const webhookItem = queueItems[0];
+
+        await processWebhookItem(webhookItem);
+
+        // Verify database was updated correctly
+        const updatedItems = await getWebhookQueueItems(businessId);
+        const updatedItem = updatedItems[0];
+
+        expect(updatedItem.status).toBe("delivered");
+        expect(updatedItem.attempts).toBe(1);
+        expect(updatedItem.response_status_code).toBe(200);
+        expect(updatedItem.response_body).toBe("OK");
+        expect(updatedItem.last_attempt_at).toBeDefined();
+        expect(updatedItem.next_retry_at).toBeNull();
+
+        // Verify webhook was actually sent with correct payload
+        const received = integrationMockEndpoint.getReceivedWebhooks();
+        expect(received).toHaveLength(1);
+        expect(received[0].body.survey_id).toBe("test_survey");
+        expect(received[0].body.subject_id).toBe("test_user");
+        expect(received[0].body.score).toBe(9);
+        expect(received[0].body.comment).toBe("Great service!");
+        expect(received[0].body.timestamp).toBeDefined();
+
+        // Verify proper headers were sent
+        expect(received[0].headers["content-type"]).toBe("application/json");
+        expect(received[0].headers["x-clicknps-signature"]).toStartWith(
+          "sha256=",
+        );
+        expect(received[0].headers["x-clicknps-timestamp"]).toBeDefined();
+        expect(received[0].headers["user-agent"]).toBe("ClickNPS-Webhooks/1.0");
+      });
+
+      test("handles null comment correctly", async () => {
+        const businessId = await createTestBusiness(
+          connection,
+          "Test Business",
+        );
+
+        await createTestWebhook(businessId, {
+          comment: undefined,
+          webhookUrl: integrationMockEndpoint.url,
+          webhookSecret: "test_secret",
+          status: "pending",
+        });
+
+        const queueItems = await getWebhookQueueItems(businessId);
+        const webhookItem = queueItems[0];
+
+        await processWebhookItem(webhookItem);
+
+        const received = integrationMockEndpoint.getReceivedWebhooks();
+        expect(received[0].body.comment).toBeNull();
+      });
+    });
+
+    describe("failed webhook delivery", () => {
+      test("handles unreachable webhook URL", async () => {
+        const businessId = await createTestBusiness(
+          connection,
+          "Test Business",
+        );
+
+        await createTestWebhook(businessId, {
+          webhookUrl: "http://localhost:99999/webhook", // Non-existent endpoint
+          webhookSecret: "test_secret",
+          status: "pending",
+        });
+
+        const queueItems = await getWebhookQueueItems(businessId);
+        const webhookItem = queueItems[0];
+
+        await processWebhookItem(webhookItem);
+
+        const updatedItems = await getWebhookQueueItems(businessId);
+        const updatedItem = updatedItems[0];
+
+        expect(updatedItem.status).toBe("failed");
+        expect(updatedItem.attempts).toBe(1);
+        expect(updatedItem.response_status_code).toBe(0);
+        expect(updatedItem.response_body).toContain("fetch");
+        expect(updatedItem.next_retry_at).toBeDefined();
+        expect(updatedItem.last_attempt_at).toBeDefined();
+
+        // Should schedule retry in the future (exponential backoff starts at 1 minute)
+        const now = new Date();
+        expect(updatedItem.next_retry_at?.getTime()).toBeGreaterThan(
+          now.getTime() + 50000,
+        ); // At least 50 seconds from now
+      });
+
+      test("handles malformed webhook URL", async () => {
+        const businessId = await createTestBusiness(
+          connection,
+          "Test Business",
+        );
+
+        await createTestWebhook(businessId, {
+          webhookUrl: "not-a-valid-url",
+          webhookSecret: "test_secret",
+          status: "pending",
+        });
+
+        const queueItems = await getWebhookQueueItems(businessId);
+        const webhookItem = queueItems[0];
+
+        await processWebhookItem(webhookItem);
+
+        const updatedItems = await getWebhookQueueItems(businessId);
+        const updatedItem = updatedItems[0];
+
+        expect(updatedItem.status).toBe("failed");
+        expect(updatedItem.response_status_code).toBe(0);
+        expect(updatedItem.response_body).toContain("fetch");
+      });
+    });
+
+    describe("webhook processing protection", () => {
+      test("prevents double processing of same webhook", async () => {
+        const businessId = await createTestBusiness(
+          connection,
+          "Test Business",
+        );
+
+        await createTestWebhook(businessId, {
+          webhookUrl: integrationMockEndpoint.url,
+          webhookSecret: "test_secret",
+          status: "pending",
+        });
+
+        const queueItems = await getWebhookQueueItems(businessId);
+        const webhookItem = queueItems[0];
+
+        // First call should process the webhook
+        await processWebhookItem(webhookItem);
+
+        // Reset mock endpoint to track new calls
+        integrationMockEndpoint.cleanup();
+        integrationMockEndpoint = mockWebhookEndpoint(integrationTestPort++);
+
+        // Second call should be ignored (webhook already marked as processing/delivered)
+        await processWebhookItem(webhookItem);
+
+        // Should not receive any new webhooks
+        const received = integrationMockEndpoint.getReceivedWebhooks();
+        expect(received).toHaveLength(0);
+      });
+
+      test("skips webhook that's already being processed", async () => {
+        const businessId = await createTestBusiness(
+          connection,
+          "Test Business",
+        );
+
+        await createTestWebhook(businessId, {
+          webhookUrl: integrationMockEndpoint.url,
+          status: "processing", // Already being processed
+        });
+
+        const queueItems = await getWebhookQueueItems(businessId);
+        const webhookItem = queueItems[0];
+
+        await processWebhookItem(webhookItem);
+
+        // Should not send any webhooks
+        const received = integrationMockEndpoint.getReceivedWebhooks();
+        expect(received).toHaveLength(0);
+
+        // Status should remain as processing
+        const updatedItems = await getWebhookQueueItems(businessId);
+        expect(updatedItems[0].status).toBe("processing");
+      });
+    });
+
+    describe("error handling", () => {
+      test("handles unexpected errors during processing", async () => {
+        const businessId = await createTestBusiness(
+          connection,
+          "Test Business",
+        );
+
+        // Create a webhook with a very long response that might cause issues
+        await createTestWebhook(businessId, {
+          webhookUrl: "http://localhost:99998/will-cause-error", // Non-existent endpoint
+          webhookSecret: "test_secret",
+          status: "pending",
+        });
+
+        const queueItems = await getWebhookQueueItems(businessId);
+        const webhookItem = queueItems[0];
+
+        // This should handle the error gracefully
+        await processWebhookItem(webhookItem);
+
+        const updatedItems = await getWebhookQueueItems(businessId);
+        const updatedItem = updatedItems[0];
+
+        // Should still update the database with failure status
+        expect(updatedItem.status).toBe("failed");
+        expect(updatedItem.attempts).toBe(1);
+        expect(updatedItem.response_status_code).toBe(0);
+      });
+    });
+
+    describe("signature generation", () => {
+      test("generates consistent signatures for same payload", async () => {
+        const businessId = await createTestBusiness(
+          connection,
+          "Test Business",
+        );
+
+        await createTestWebhook(businessId, {
+          surveyId: "consistent_test",
+          subjectId: "test_user",
+          score: 7,
+          comment: "Test comment",
+          webhookUrl: integrationMockEndpoint.url,
+          webhookSecret: "known_secret",
+          status: "pending",
+        });
+
+        const queueItems = await getWebhookQueueItems(businessId);
+        const webhookItem = queueItems[0];
+
+        await processWebhookItem(webhookItem);
+
+        const received = integrationMockEndpoint.getReceivedWebhooks();
+        const signature = received[0].headers["x-clicknps-signature"];
+
+        // Signature should be consistent format
+        expect(signature).toStartWith("sha256=");
+        expect(signature.replace("sha256=", "")).toHaveLength(64);
+        expect(/^sha256=[a-f0-9]{64}$/.test(signature)).toBe(true);
+      });
+    });
+
+    describe("payload validation", () => {
+      test("includes all required fields in webhook payload", async () => {
+        const businessId = await createTestBusiness(
+          connection,
+          "Test Business",
+        );
+
+        await createTestWebhook(businessId, {
+          surveyId: "payload_test",
+          subjectId: "user_123",
+          score: 10,
+          comment: "Excellent!",
+          webhookUrl: integrationMockEndpoint.url,
+          webhookSecret: "test_secret",
+          status: "pending",
+        });
+
+        const queueItems = await getWebhookQueueItems(businessId);
+        const webhookItem = queueItems[0];
+
+        await processWebhookItem(webhookItem);
+
+        const received = integrationMockEndpoint.getReceivedWebhooks();
+        const payload = received[0].body;
+
+        // Check all required fields are present
+        expect(payload).toHaveProperty("survey_id", "payload_test");
+        expect(payload).toHaveProperty("subject_id", "user_123");
+        expect(payload).toHaveProperty("score", 10);
+        expect(payload).toHaveProperty("comment", "Excellent!");
+        expect(payload).toHaveProperty("timestamp");
+
+        // Timestamp should be valid ISO string
+        expect(new Date(payload.timestamp).toISOString()).toBe(
+          payload.timestamp,
+        );
+      });
     });
   });
 });

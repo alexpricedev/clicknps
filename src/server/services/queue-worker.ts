@@ -15,8 +15,11 @@ let isProcessing = false;
 
 /**
  * Process a single webhook item
+ * Exported for testing purposes
  */
-const processWebhookItem = async (item: WebhookQueueItem): Promise<void> => {
+export const processWebhookItem = async (
+  item: WebhookQueueItem,
+): Promise<void> => {
   // Mark as processing to prevent double-processing
   const marked = await markWebhookProcessing(item.id);
   if (!marked) {

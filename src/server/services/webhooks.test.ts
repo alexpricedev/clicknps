@@ -333,4 +333,164 @@ describe("Webhook Service", () => {
       expect(deliveries).toHaveLength(5);
     });
   });
+
+  describe("signature verification", () => {
+    test("includes correct signature in webhook headers", async () => {
+      const payload = {
+        survey_id: "test_survey",
+        subject_id: "test_user",
+        score: 9,
+        comment: "Test comment",
+        timestamp: new Date().toISOString(),
+      };
+      const secret = "test_secret_123";
+
+      const result = await sendWebhook(payload, mockEndpoint.url, secret);
+
+      expect(result.success).toBe(true);
+
+      const received = mockEndpoint.getReceivedWebhooks();
+      expect(received).toHaveLength(1);
+
+      const signature = received[0].headers["x-clicknps-signature"];
+      expect(signature).toStartWith("sha256=");
+
+      // Verify signature matches expected format (64 char hex after "sha256=")
+      const hexPart = signature.replace("sha256=", "");
+      expect(hexPart).toHaveLength(64);
+      expect(/^[a-f0-9]{64}$/.test(hexPart)).toBe(true);
+    });
+
+    test("signature matches expected HMAC-SHA256", async () => {
+      const payload = {
+        survey_id: "test_survey",
+        subject_id: "test_user",
+        score: 8,
+        comment: null,
+        timestamp: "2024-01-01T00:00:00.000Z",
+      };
+      const secret = "known_secret";
+
+      await sendWebhook(payload, mockEndpoint.url, secret);
+
+      const received = mockEndpoint.getReceivedWebhooks();
+      const receivedSignature = received[0].headers["x-clicknps-signature"];
+
+      // Generate expected signature
+      const payloadJson = JSON.stringify(payload);
+      const expectedSignature = `sha256=${generateWebhookSignature(payloadJson, secret)}`;
+
+      expect(receivedSignature).toBe(expectedSignature);
+    });
+  });
+
+  describe("invalid webhook URL handling", () => {
+    test("handles malformed URLs", async () => {
+      const payload = {
+        survey_id: "test_survey",
+        subject_id: "test_user",
+        score: 7,
+        comment: null,
+        timestamp: new Date().toISOString(),
+      };
+
+      const result = await sendWebhook(
+        payload,
+        "not-a-valid-url",
+        "test_secret",
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.statusCode).toBe(0);
+      expect(result.responseBody).toContain("fetch");
+    });
+
+    test("handles unreachable URLs", async () => {
+      const payload = {
+        survey_id: "test_survey",
+        subject_id: "test_user",
+        score: 6,
+        comment: null,
+        timestamp: new Date().toISOString(),
+      };
+
+      const result = await sendWebhook(
+        payload,
+        "http://localhost:99999/webhook",
+        "test_secret",
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.statusCode).toBe(0);
+      expect(result.responseBody.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("queue ordering", () => {
+    test("processes webhooks in FIFO order by scheduled_for", async () => {
+      const businessId = await createTestBusiness(connection, "Test Business");
+
+      const now = new Date();
+      const webhook1Time = new Date(now.getTime() - 3000); // 3 seconds ago
+      const webhook2Time = new Date(now.getTime() - 2000); // 2 seconds ago
+      const webhook3Time = new Date(now.getTime() - 1000); // 1 second ago
+
+      // Create webhooks in reverse order
+      await createTestWebhook(businessId, {
+        surveyId: "survey_3",
+        scheduledFor: webhook3Time,
+        status: "pending",
+      });
+      await createTestWebhook(businessId, {
+        surveyId: "survey_1",
+        scheduledFor: webhook1Time,
+        status: "pending",
+      });
+      await createTestWebhook(businessId, {
+        surveyId: "survey_2",
+        scheduledFor: webhook2Time,
+        status: "pending",
+      });
+
+      const { getPendingWebhooks } = await import("./webhooks");
+      const pending = await getPendingWebhooks(10);
+
+      // Should be ordered by scheduled_for ASC
+      expect(pending).toHaveLength(3);
+      expect(pending[0].survey_id).toBe("survey_1");
+      expect(pending[1].survey_id).toBe("survey_2");
+      expect(pending[2].survey_id).toBe("survey_3");
+    });
+
+    test("processes retry webhooks in order by next_retry_at", async () => {
+      const businessId = await createTestBusiness(connection, "Test Business");
+
+      const now = new Date();
+      const retry1Time = new Date(now.getTime() - 2000); // 2 seconds ago
+      const retry2Time = new Date(now.getTime() - 1000); // 1 second ago
+
+      // Create failed webhooks with retry times
+      const retryId1 = crypto.randomUUID();
+      const retryId2 = crypto.randomUUID();
+
+      await connection`
+        INSERT INTO webhook_queue (
+          id, business_id, survey_id, subject_id, score, comment,
+          webhook_url, webhook_secret, scheduled_for, status, next_retry_at, attempts
+        ) VALUES
+          (${retryId2}, ${businessId}, 'survey_retry_2', 'user', 5, null, 
+           'http://localhost:9999', 'secret', CURRENT_TIMESTAMP, 'failed', ${retry2Time}, 1),
+          (${retryId1}, ${businessId}, 'survey_retry_1', 'user', 5, null,
+           'http://localhost:9999', 'secret', CURRENT_TIMESTAMP, 'failed', ${retry1Time}, 1)
+      `;
+
+      const { getRetryWebhooks } = await import("./webhooks");
+      const retries = await getRetryWebhooks(10);
+
+      // Should be ordered by next_retry_at ASC
+      expect(retries).toHaveLength(2);
+      expect(retries[0].survey_id).toBe("survey_retry_1");
+      expect(retries[1].survey_id).toBe("survey_retry_2");
+    });
+  });
 });
