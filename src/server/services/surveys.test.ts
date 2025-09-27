@@ -21,6 +21,7 @@ import {
   createSurvey,
   findSurvey,
   findSurveyLinkByToken,
+  findSurveyLinkWithDetails,
   hasExistingResponse,
   hasExistingResponseForSurvey,
   type MintLinksRequest,
@@ -535,6 +536,148 @@ describe("Surveys Service with PostgreSQL", () => {
       const surveyLink8 = await findSurveyLinkByToken(token8);
       if (!surveyLink8) throw new Error("Survey link not found");
       expect(await hasExistingResponse(surveyLink8.id)).toBe(false);
+    });
+  });
+
+  describe("findSurveyLinkWithDetails", () => {
+    it("should return survey link with survey details for valid token", async () => {
+      // Setup: Create survey and links
+      const survey = await createSurvey(testBusinessId, "test-survey-details", {
+        title: "Details Test Survey",
+        description: "A survey for testing findSurveyLinkWithDetails",
+        ttl_days: 14,
+      });
+
+      const request: MintLinksRequest = {
+        subject_id: "user-details-test",
+        ttl_days: 7,
+      };
+
+      await mintSurveyLinks(survey, request);
+
+      // Get a token for testing
+      const token = await getTokenForScore(
+        testBusinessId,
+        "test-survey-details",
+        8,
+      );
+
+      // Test the method
+      const result = await findSurveyLinkWithDetails(token);
+
+      expect(result).not.toBeNull();
+      if (!result) throw new Error("Result should not be null");
+
+      const { surveyLink, survey: returnedSurvey } = result;
+
+      // Verify surveyLink properties
+      expect(surveyLink.token).toBe(token);
+      expect(surveyLink.survey_id).toBe(survey.id);
+      expect(surveyLink.subject_id).toBe("user-details-test");
+      expect(surveyLink.score).toBe(8);
+      expect(surveyLink.expires_at).toBeInstanceOf(Date);
+      expect(surveyLink.created_at).toBeInstanceOf(Date);
+
+      // Verify survey properties
+      expect(returnedSurvey.id).toBe(survey.id);
+      expect(returnedSurvey.business_id).toBe(testBusinessId);
+      expect(returnedSurvey.survey_id).toBe("test-survey-details");
+      expect(returnedSurvey.title).toBe("Details Test Survey");
+      expect(returnedSurvey.description).toBe(
+        "A survey for testing findSurveyLinkWithDetails",
+      );
+      expect(returnedSurvey.ttl_days).toBe(14);
+      expect(returnedSurvey.created_at).toBeInstanceOf(Date);
+    });
+
+    it("should return null for non-existent token", async () => {
+      const result = await findSurveyLinkWithDetails(
+        "non-existent-token-details",
+      );
+      expect(result).toBeNull();
+    });
+
+    it("should return null for expired token", async () => {
+      const { token } = await createExpiredSurveyLink(
+        connection,
+        testBusinessId,
+        2, // expired 2 days ago
+      );
+
+      const result = await findSurveyLinkWithDetails(token);
+      expect(result).toBeNull();
+    });
+
+    it("should handle survey with null title and description", async () => {
+      // Create survey without title/description
+      const survey = await createSurvey(
+        testBusinessId,
+        "test-survey-null-details",
+      );
+
+      const request: MintLinksRequest = {
+        subject_id: "user-null-details",
+      };
+
+      await mintSurveyLinks(survey, request);
+
+      // Get a token for testing
+      const token = await getTokenForScore(
+        testBusinessId,
+        "test-survey-null-details",
+        3,
+      );
+
+      // Test the method
+      const result = await findSurveyLinkWithDetails(token);
+
+      expect(result).not.toBeNull();
+      if (!result) throw new Error("Result should not be null");
+
+      const { survey: returnedSurvey } = result;
+
+      // Verify survey properties with null values
+      expect(returnedSurvey.title).toBeNull();
+      expect(returnedSurvey.description).toBeNull();
+      expect(returnedSurvey.ttl_days).toBe(30); // default value
+    });
+
+    it("should return correct data types for all fields", async () => {
+      const survey = await createSurvey(testBusinessId, "test-survey-types");
+
+      const request: MintLinksRequest = {
+        subject_id: "user-types-test",
+      };
+
+      await mintSurveyLinks(survey, request);
+
+      const token = await getTokenForScore(
+        testBusinessId,
+        "test-survey-types",
+        10,
+      );
+      const result = await findSurveyLinkWithDetails(token);
+
+      expect(result).not.toBeNull();
+      if (!result) throw new Error("Result should not be null");
+
+      const { surveyLink, survey: returnedSurvey } = result;
+
+      // Check surveyLink data types
+      expect(typeof surveyLink.id).toBe("string");
+      expect(typeof surveyLink.token).toBe("string");
+      expect(typeof surveyLink.survey_id).toBe("string");
+      expect(typeof surveyLink.subject_id).toBe("string");
+      expect(typeof surveyLink.score).toBe("number");
+      expect(surveyLink.expires_at).toBeInstanceOf(Date);
+      expect(surveyLink.created_at).toBeInstanceOf(Date);
+
+      // Check survey data types
+      expect(typeof returnedSurvey.id).toBe("string");
+      expect(typeof returnedSurvey.business_id).toBe("string");
+      expect(typeof returnedSurvey.survey_id).toBe("string");
+      expect(typeof returnedSurvey.ttl_days).toBe("number");
+      expect(returnedSurvey.created_at).toBeInstanceOf(Date);
     });
   });
 });

@@ -1,5 +1,6 @@
 import { apiRoutes } from "./routes/api";
 import { appRoutes } from "./routes/app";
+import { startWebhookWorker } from "./services/queue-worker";
 
 const server = Bun.serve({
   port: process.env.PORT || 3000,
@@ -29,3 +30,6 @@ const server = Bun.serve({
 });
 
 console.log(`Server running at http://localhost:${server.port}`);
+
+// Start the webhook queue worker
+startWebhookWorker();

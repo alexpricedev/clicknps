@@ -39,6 +39,10 @@ export const appRoutes = {
     GET: settings.apiKeys,
     POST: settings.apiKeys,
   }),
+  "/settings/webhooks": createRouteHandler({
+    GET: settings.webhooks,
+    POST: settings.webhooks,
+  }),
   "/login": createRouteHandler({
     GET: login.index,
     POST: login.create,
