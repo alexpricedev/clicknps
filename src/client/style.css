@@ -7,7 +7,7 @@
 
 @plugin "daisyui" {
   /* biome-ignore lint/correctness/noUnknownProperty: daisyui plugin */
-  themes: dracula;
+  themes: night;
 }
 
 html {

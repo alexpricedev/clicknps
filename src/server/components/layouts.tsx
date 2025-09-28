@@ -23,7 +23,7 @@ export function Layout({
   csrfToken,
 }: LayoutProps) {
   return (
-    <html lang="en" data-theme="dracula">
+    <html lang="en" data-theme="night">
       <head>
         <meta charSet="utf-8" />
         <meta
@@ -34,10 +34,10 @@ export function Layout({
         <link rel="stylesheet" href="/assets/main.css" />
       </head>
       <body data-page={name}>
-        <header className="bg-base-300 mb-4 border-b border-base-content/15">
+        <header className="bg-base-300 mb-8 border-b border-base-content/15 px-4 sm:px-0">
           <Nav page={name} auth={auth} csrfToken={csrfToken} />
         </header>
-        <main className="container mx-auto">{children}</main>
+        <main className="container mx-auto px-4 sm:px-0">{children}</main>
         <script type="module" src="/assets/main.js" />
       </body>
     </html>

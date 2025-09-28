@@ -7,6 +7,7 @@ import {
   createSurvey,
   findSurvey,
   getSurveyResponses,
+  getSurveyStats,
   listSurveys,
   mintSurveyLinks,
 } from "../../services/surveys";
@@ -55,11 +56,15 @@ export const surveys = {
 
     const url = new URL(req.url);
     const state = parseSurveysState(url);
-    const surveysList = await listSurveys(auth.business.id);
+    const [surveysList, surveysStats] = await Promise.all([
+      listSurveys(auth.business.id),
+      getSurveyStats(auth.business.id),
+    ]);
 
     return render(
       <Surveys
         surveys={surveysList}
+        stats={surveysStats}
         state={state}
         auth={auth}
         csrfToken={csrfToken}

@@ -13,8 +13,8 @@
     "test": "NODE_ENV=test bun run src/server/database/cli.ts up && NODE_ENV=test bun test src",
     "test:file": "NODE_ENV=test bun run src/server/database/cli.ts up && NODE_ENV=test bun test",
     "commit": "git add --all && git commit",
-    "lint": "bunx @biomejs/biome@beta check src",
-    "lint:write": "bunx @biomejs/biome@beta check src --write",
+    "lint": "biome check src",
+    "lint:write": "biome check src --write",
     "typecheck": "bun --bun tsc --noEmit",
     "check": "bun run lint && bun run typecheck",
     "migrate:up": "bun run src/server/database/cli.ts up",
@@ -23,7 +23,7 @@
     "prepare": "husky"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.0.5",
+    "@biomejs/biome": "^2.0.0-beta.6",
     "@tailwindcss/cli": "^4.1.13",
     "@types/bun": "1.2.21",
     "@types/react": "^19.1.12",

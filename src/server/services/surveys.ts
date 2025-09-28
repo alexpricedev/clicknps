@@ -45,6 +45,13 @@ export interface SurveyResponse {
   subject_id: string;
 }
 
+export interface SurveyStats {
+  survey_id: string;
+  response_count: number;
+  comment_count: number;
+  average_nps: number | null;
+}
+
 /**
  * Find an existing survey by business and survey_id
  */
@@ -338,4 +345,33 @@ export const getSurveyResponses = async (
   `;
 
   return result as SurveyResponse[];
+};
+
+/**
+ * Get aggregated statistics for all surveys for a business
+ */
+export const getSurveyStats = async (
+  businessId: string,
+): Promise<SurveyStats[]> => {
+  const result = await db`
+    SELECT 
+      s.id as survey_id,
+      COUNT(r.id) as response_count,
+      COUNT(CASE WHEN r.comment IS NOT NULL AND r.comment != '' THEN 1 END) as comment_count,
+      ROUND(AVG(sl.score), 1) as average_nps
+    FROM surveys s
+    LEFT JOIN survey_links sl ON s.id = sl.survey_id
+    LEFT JOIN responses r ON sl.id = r.survey_link_id
+    WHERE s.business_id = ${businessId}
+    GROUP BY s.id
+    ORDER BY s.created_at DESC
+  `;
+
+  /* biome-ignore lint/suspicious/noExplicitAny: todo */
+  return result.map((row: any) => ({
+    survey_id: row.survey_id,
+    response_count: Number(row.response_count) || 0,
+    comment_count: Number(row.comment_count) || 0,
+    average_nps: row.average_nps ? Number(row.average_nps) : null,
+  })) as SurveyStats[];
 };
