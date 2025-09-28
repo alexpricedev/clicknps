@@ -35,6 +35,9 @@ const {
 
 export const surveys = {
   async index(req: BunRequest): Promise<Response> {
+    const authRequired = await requireAuth(req);
+    if (authRequired) return authRequired;
+
     const auth = await getAuthContext(req);
 
     let csrfToken: string | null = null;
@@ -46,10 +49,8 @@ export const surveys = {
       }
     }
 
-    if (!auth.isAuthenticated || !auth.business) {
-      return render(
-        <Surveys isAuthenticated={false} auth={auth} csrfToken={csrfToken} />,
-      );
+    if (!auth.business) {
+      return new Response("Business not found", { status: 404 });
     }
 
     const url = new URL(req.url);
@@ -58,7 +59,6 @@ export const surveys = {
 
     return render(
       <Surveys
-        isAuthenticated={true}
         surveys={surveysList}
         state={state}
         auth={auth}

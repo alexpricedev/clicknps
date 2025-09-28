@@ -89,7 +89,7 @@ export const Nav = ({ page, auth, csrfToken }: NavProps) => (
                 <path d="m7 10 5 5 5-5z" />
               </svg>
             </button>
-            <ul className="menu dropdown-content bg-base-300 rounded-b-box z-[1] mt-2 w-52 p-2 shadow-sm">
+            <ul className="menu dropdown-content bg-base-300 rounded-b-box z-[1] mt-2 w-40 p-2 shadow-sm">
               {settingsLinks.map(({ href, label }) => (
                 <li key={href}>
                   <a href={href}>{label}</a>

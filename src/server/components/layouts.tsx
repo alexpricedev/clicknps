@@ -34,7 +34,7 @@ export function Layout({
         <link rel="stylesheet" href="/assets/main.css" />
       </head>
       <body data-page={name}>
-        <header className="shadow-sm bg-base-300 mb-4">
+        <header className="bg-base-300 mb-4 border-b border-base-content/15">
           <Nav page={name} auth={auth} csrfToken={csrfToken} />
         </header>
         <main className="container mx-auto">{children}</main>
