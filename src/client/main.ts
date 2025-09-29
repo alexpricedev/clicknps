@@ -1,14 +1,10 @@
 // Page scripts
-import { init as initAbout } from "@client/pages/about";
-import { init as initContact } from "@client/pages/contact";
-import { init as initHome } from "@client/pages/home";
+import { init as initWebhooks } from "@client/pages/webhooks";
 
 const page = document.body.dataset.page;
 
 const pages: Record<string, () => void> = {
-  home: initHome,
-  about: initAbout,
-  contact: initContact,
+  webhooks: initWebhooks,
 };
 
 if (page && pages[page]) {

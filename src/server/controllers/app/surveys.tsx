@@ -214,17 +214,22 @@ export const surveys = {
   async mintForm<T extends `${string}:surveyId${string}`>(
     req: BunRequest<T>,
   ): Promise<Response> {
-    const [auth, sessionId] = await Promise.all([
-      getAuthContext(req),
-      getSessionIdFromCookies(req.headers.get("cookie")),
-    ]);
+    const authRequired = await requireAuth(req);
+    if (authRequired) return authRequired;
 
-    if (!auth.isAuthenticated || !sessionId || !auth.business) {
-      return render(<SurveyMint isAuthenticated={false} />);
+    const auth = await getAuthContext(req);
+    const sessionId = getSessionIdFromCookies(req.headers.get("cookie"));
+
+    let csrfToken: string | null = null;
+    let createCsrfTokenValue: string | null = null;
+
+    if (!auth.business) {
+      return new Response("Business not found", { status: 404 });
     }
 
     const surveyId = req.params.surveyId;
     const survey = await findSurvey(auth.business.id, surveyId);
+
     if (!survey) {
       return new Response("Survey not found", {
         status: 404,
@@ -232,20 +237,24 @@ export const surveys = {
       });
     }
 
-    const state = parseMintState(new URL(req.url));
+    if (sessionId) {
+      const [createToken, logoutToken] = await Promise.all([
+        createCsrfToken(sessionId, "POST", `/surveys/${surveyId}/mint`),
+        createCsrfToken(sessionId, "POST", "/auth/logout"),
+      ]);
+      createCsrfTokenValue = createToken;
+      csrfToken = logoutToken;
+    }
 
-    const createCsrfTokenValue = await createCsrfToken(
-      sessionId,
-      "POST",
-      `/surveys/${surveyId}/mint`,
-    );
+    const state = parseMintState(new URL(req.url));
 
     return render(
       <SurveyMint
-        isAuthenticated={true}
+        auth={auth}
         survey={survey}
         state={state}
         createCsrfToken={createCsrfTokenValue}
+        csrfToken={csrfToken}
       />,
     );
   },
@@ -362,10 +371,22 @@ export const surveys = {
   async responses<T extends `${string}:surveyId${string}`>(
     req: BunRequest<T>,
   ): Promise<Response> {
+    const authRequired = await requireAuth(req);
+    if (authRequired) return authRequired;
+
     const auth = await getAuthContext(req);
 
-    if (!auth.isAuthenticated || !auth.business) {
-      return render(<SurveyResponses isAuthenticated={false} />);
+    let csrfToken: string | null = null;
+    if (auth.isAuthenticated) {
+      const cookieHeader = req.headers.get("cookie");
+      const sessionId = getSessionIdFromCookies(cookieHeader);
+      if (sessionId) {
+        csrfToken = await createCsrfToken(sessionId, "POST", "/auth/logout");
+      }
+    }
+
+    if (!auth.business) {
+      return new Response("Business not found", { status: 404 });
     }
 
     const surveyId = req.params.surveyId;
@@ -381,9 +402,10 @@ export const surveys = {
 
     return render(
       <SurveyResponses
-        isAuthenticated={true}
+        auth={auth}
         survey={survey}
         responses={responses}
+        csrfToken={csrfToken}
       />,
     );
   },

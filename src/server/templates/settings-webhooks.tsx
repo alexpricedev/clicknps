@@ -1,5 +1,18 @@
+import {
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  Copy,
+  Loader,
+  TestTube,
+  Webhook,
+  X,
+  Zap,
+} from "lucide-react";
 import type { JSX } from "react";
+import { CsrfField } from "../components/csrf-field";
 import { Layout } from "../components/layouts";
+import { PageHeader } from "../components/page-header";
 import type { AuthContext } from "../middleware/auth";
 import type { WebhookQueueItem } from "../services/webhooks";
 
@@ -49,34 +62,40 @@ export const WebhookSettings = (props: WebhookSettingsProps): JSX.Element => {
   };
 
   const getStatusBadge = (status: string) => {
-    const baseClasses = "px-2 py-1 text-xs font-semibold rounded-full";
     switch (status) {
       case "delivered":
-        return `${baseClasses} bg-green-100 text-green-800`;
+        return "badge badge-success";
       case "failed":
-        return `${baseClasses} bg-red-100 text-red-800`;
+        return "badge badge-error";
       case "pending":
-        return `${baseClasses} bg-yellow-100 text-yellow-800`;
+        return "badge badge-warning";
       case "processing":
-        return `${baseClasses} bg-blue-100 text-blue-800`;
+        return "badge badge-info";
       default:
-        return `${baseClasses} bg-gray-100 text-gray-800`;
+        return "badge badge-neutral";
     }
   };
 
   const getStatusIcon = (status: string) => {
+    const iconClass = "w-4 h-4";
     switch (status) {
       case "delivered":
-        return "✅";
+        return <CheckCircle className={iconClass} />;
       case "failed":
-        return "❌";
+        return <X className={iconClass} />;
       case "pending":
-        return "⏳";
+        return <Clock className={iconClass} />;
       case "processing":
-        return "🔄";
+        return <Loader className={iconClass} />;
       default:
-        return "❓";
+        return <AlertTriangle className={iconClass} />;
     }
+  };
+
+  const getScoreBadgeClass = (score: number): string => {
+    if (score >= 9) return "badge-success";
+    if (score >= 7) return "badge-warning";
+    return "badge-error";
   };
 
   return (
@@ -86,314 +105,282 @@ export const WebhookSettings = (props: WebhookSettingsProps): JSX.Element => {
       auth={props.auth}
       csrfToken={props.csrfToken}
     >
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="mb-8">
-            <div className="mb-4">
-              <h1 className="text-3xl font-bold mb-2">Webhooks</h1>
-              <p className="text-gray-600">
-                Configure webhook delivery for survey responses. Webhooks are
-                sent after a 180-second delay to allow for optional comments.
-              </p>
-            </div>
-          </div>
+      <div>
+        <PageHeader
+          title="Webhooks"
+          description="Configure webhook delivery for survey responses. Webhooks are sent after a 180-second delay to allow for optional comments."
+        />
 
-          {/* Success Messages */}
-          {state?.updated && (
-            <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-4 rounded-lg mb-6">
-              <h3 className="font-semibold mb-2">
-                ✅ Webhook Settings Updated Successfully
-              </h3>
-              <p className="mb-3">
-                Your webhook URL has been configured: <br />
-                <code className="bg-green-100 px-2 py-1 rounded text-sm break-all">
+        {/* Success Messages */}
+        {state?.updated && (
+          <div className="alert alert-success mb-6">
+            <CheckCircle className="w-6 h-6" />
+            <div>
+              <div className="font-semibold">
+                Webhook Settings Updated Successfully
+              </div>
+              <div className="text-sm">
+                Your webhook URL has been configured:
+              </div>
+              <div className="bg-base-100 border border-base-300 rounded p-3 mt-2">
+                <code className="text-sm break-all select-all">
                   {state.updated.webhook_url}
                 </code>
-              </p>
+              </div>
               {state.updated.webhook_secret && (
-                <div className="mb-3">
-                  <p className="text-sm font-medium mb-2">
+                <div className="mt-3">
+                  <div className="text-sm font-medium mb-2">
                     Webhook Secret (copy this now - it won't be shown again):
-                  </p>
-                  <div className="bg-white border border-green-300 rounded p-3 mb-3">
+                  </div>
+                  <div className="bg-base-100 border border-base-300 rounded p-3 mb-3">
                     <code className="text-sm break-all select-all">
                       {state.updated.webhook_secret}
                     </code>
                   </div>
-                  <button
-                    type="button"
-                    className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
-                  >
+                  <button type="button" className="btn btn-sm btn-success">
+                    <Copy className="w-4 h-4" />
                     Copy Secret
                   </button>
                 </div>
               )}
             </div>
-          )}
+          </div>
+        )}
 
-          {state?.testSuccess && (
-            <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-4 rounded-lg mb-6">
-              <h3 className="font-semibold mb-2">
-                ✅ Test Webhook Sent Successfully
-              </h3>
-              <p>
+        {state?.testSuccess && (
+          <div className="alert alert-success mb-6">
+            <CheckCircle className="w-6 h-6" />
+            <div>
+              <div className="font-semibold">
+                Test Webhook Sent Successfully
+              </div>
+              <div className="text-sm">
                 Your endpoint responded with status code{" "}
                 {state.testSuccess.statusCode}. Your webhook is working
                 correctly!
-              </p>
+              </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {state?.testError && (
-            <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-4 rounded-lg mb-6">
-              <h3 className="font-semibold mb-2">❌ Test Webhook Failed</h3>
-              <p className="mb-2">
+        {state?.testError && (
+          <div className="alert alert-error mb-6">
+            <X className="w-6 h-6" />
+            <div>
+              <div className="font-semibold">Test Webhook Failed</div>
+              <div className="text-sm">
                 Status code: {state.testError.statusCode || "No response"}
-              </p>
-              <p className="text-sm">Error: {state.testError.message}</p>
+              </div>
+              <div className="text-sm">Error: {state.testError.message}</div>
             </div>
-          )}
+          </div>
+        )}
 
-          {state?.error && (
-            <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg mb-6">
-              <p className="font-semibold">❌ Error: {state.error}</p>
-            </div>
-          )}
+        {state?.error && (
+          <div className="alert alert-error mb-6">
+            <AlertTriangle className="w-6 h-6" />
+            <span className="font-semibold">Error: {state.error}</span>
+          </div>
+        )}
 
-          {/* Webhook Configuration Form */}
-          <div className="bg-white border border-gray-200 rounded-lg p-6 mb-8">
-            <h2 className="text-lg font-semibold mb-4">Configure Webhook</h2>
+        {/* Webhook Configuration Form */}
+        <div className="card bg-neutral text-neutral-content max-w-2xl mb-8">
+          <div className="card-body">
+            <h2 className="card-title text-lg mb-4">
+              <Webhook className="w-5 h-5" />
+              Configure Webhook
+            </h2>
             <form
-              method="post"
+              method="POST"
               action="/settings/webhooks"
-              className="space-y-4"
+              className="space-y-6"
             >
-              {csrfToken && (
-                <input type="hidden" name="_csrf" value={csrfToken} />
-              )}
+              <CsrfField token={csrfToken} />
               <input type="hidden" name="action" value="update" />
 
-              <div>
-                <label
-                  htmlFor="webhook_url"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Webhook URL <span className="text-red-500">*</span>
-                </label>
+              <fieldset className="fieldset">
+                <legend className="fieldset-legend">Webhook URL *</legend>
                 <input
                   type="url"
                   id="webhook_url"
                   name="webhook_url"
+                  required
                   defaultValue={webhookSettings.webhook_url || ""}
                   placeholder="https://your-app.com/api/webhooks/clicknps"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="input w-full"
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="label">
                   The endpoint where survey responses will be sent.
                 </p>
-              </div>
+              </fieldset>
 
-              <div>
-                <label
-                  htmlFor="webhook_secret"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
+              <fieldset className="fieldset">
+                <legend className="fieldset-legend">
                   Webhook Secret (optional)
-                </label>
+                </legend>
                 <input
                   type="text"
                   id="webhook_secret"
                   name="webhook_secret"
                   defaultValue=""
                   placeholder="Leave empty to auto-generate"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="input w-full font-mono"
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="label">
                   Used to verify webhook authenticity. Leave empty to
                   auto-generate a secure secret.
                   {webhookSettings.webhook_secret && (
                     <span className="block mt-1">
                       Current secret:{" "}
-                      {formatSecretDisplay(webhookSettings.webhook_secret)}
+                      <code className="bg-base-300 px-1 rounded">
+                        {formatSecretDisplay(webhookSettings.webhook_secret)}
+                      </code>
                     </span>
                   )}
                 </p>
-              </div>
+              </fieldset>
 
-              <div className="flex gap-3">
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                >
+              <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                <button type="submit" className="btn btn-primary">
                   Save Webhook Settings
                 </button>
+
+                {webhookSettings.webhook_url && (
+                  <button
+                    type="button"
+                    className="btn btn-dash"
+                    data-action="test-webhook"
+                  >
+                    <TestTube className="w-4 h-4" />
+                    Test Webhook
+                  </button>
+                )}
               </div>
             </form>
 
             {webhookSettings.webhook_url && (
-              <form method="post" action="/settings/webhooks" className="mt-3">
-                {csrfToken && (
-                  <input type="hidden" name="_csrf" value={csrfToken} />
-                )}
+              <form
+                id="test-webhook-form"
+                method="POST"
+                action="/settings/webhooks"
+                className="hidden"
+              >
+                <CsrfField token={csrfToken} />
                 <input type="hidden" name="action" value="test" />
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-                >
-                  Test Webhook
-                </button>
               </form>
             )}
           </div>
+        </div>
 
-          {/* Recent Webhook Deliveries */}
-          <div className="bg-white border border-gray-200 rounded-lg">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold">
-                Recent Webhook Deliveries
-              </h2>
-            </div>
+        {/* Recent Webhook Deliveries */}
+        <div className="mb-8">
+          <h2 className="text-xl font-bold mb-4">
+            <Zap className="w-6 h-6 inline mr-2" />
+            Recent Webhook Deliveries
+          </h2>
 
-            {recentDeliveries.length === 0 ? (
-              <div className="px-6 py-8 text-center">
-                <div className="text-gray-500 mb-4">
-                  <svg
-                    className="mx-auto h-12 w-12 text-gray-400"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <title>Webhook Icon</title>
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
+          {recentDeliveries.length === 0 ? (
+            <div className="text-center py-12 px-4">
+              <div className="hero bg-base-200 rounded-box p-8 max-w-md mx-auto">
+                <div className="hero-content text-center">
+                  <div className="max-w-md">
+                    <div className="mb-4">
+                      <Webhook className="w-16 h-16 mx-auto opacity-50" />
+                    </div>
+                    <h3 className="text-xl font-bold mb-2">No webhooks yet</h3>
+                    <p className="mb-6 opacity-80">
+                      Webhook deliveries will appear here after survey responses
+                      are received. Configure your webhook URL above to start
+                      receiving notifications.
+                    </p>
+                  </div>
                 </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  No webhooks yet
-                </h3>
-                <p className="text-gray-600 mb-4">
-                  Webhook deliveries will appear here after survey responses are
-                  received.
-                </p>
-                <p className="text-sm text-gray-500">
-                  Configure your webhook URL above to start receiving
-                  notifications.
-                </p>
               </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                      >
-                        Status
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                      >
-                        Survey / Subject
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                      >
-                        Score
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                      >
-                        Attempts
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                      >
-                        Created / Last Attempt
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                      >
-                        Response
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {recentDeliveries.map((delivery) => (
-                      <tr key={delivery.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <span className="mr-2">
-                              {getStatusIcon(delivery.status)}
-                            </span>
+            </div>
+          ) : (
+            <ul className="list bg-neutral rounded-box shadow-md">
+              {recentDeliveries.map((delivery) => (
+                <li key={delivery.id} className="list-row">
+                  <div className="list-col-grow min-w-0">
+                    <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="flex items-center gap-2">
+                            {getStatusIcon(delivery.status)}
                             <span className={getStatusBadge(delivery.status)}>
                               {delivery.status}
                             </span>
                           </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm font-medium text-gray-900 break-all">
-                            {delivery.survey_id}
+                          <div
+                            className={`badge ${getScoreBadgeClass(delivery.score)}`}
+                          >
+                            Score: {delivery.score}
                           </div>
-                          <div className="text-sm text-gray-500 break-all">
-                            {delivery.subject_id}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            {delivery.score}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {delivery.attempts}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <div>{formatDate(delivery.created_at)}</div>
-                          {delivery.last_attempt_at && (
-                            <div className="text-xs text-gray-400">
-                              Last: {formatDate(delivery.last_attempt_at)}
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {delivery.response_status_code ? (
-                            <span
-                              className={`inline-flex px-2 py-1 text-xs rounded ${
-                                delivery.response_status_code >= 200 &&
-                                delivery.response_status_code < 300
-                                  ? "bg-green-100 text-green-800"
-                                  : "bg-red-100 text-red-800"
-                              }`}
-                            >
-                              {delivery.response_status_code}
-                            </span>
-                          ) : (
-                            <span className="text-gray-400">-</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+                        </div>
 
-          {/* Help Section */}
-          <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-blue-900 mb-3">
+                        <div className="space-y-2">
+                          <div>
+                            <div className="text-sm font-medium text-base-content">
+                              Survey:{" "}
+                              <span className="font-mono">
+                                {delivery.survey_id}
+                              </span>
+                            </div>
+                            <div className="text-sm opacity-70">
+                              Subject:{" "}
+                              <span className="font-mono">
+                                {delivery.subject_id}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-wrap gap-4 text-xs opacity-60">
+                            <span>Attempts: {delivery.attempts}</span>
+                            <span>
+                              Created: {formatDate(delivery.created_at)}
+                            </span>
+                            {delivery.last_attempt_at && (
+                              <span>
+                                Last attempt:{" "}
+                                {formatDate(delivery.last_attempt_at)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {delivery.response_status_code ? (
+                          <div
+                            className={`badge ${
+                              delivery.response_status_code >= 200 &&
+                              delivery.response_status_code < 300
+                                ? "badge-success"
+                                : "badge-error"
+                            }`}
+                          >
+                            HTTP {delivery.response_status_code}
+                          </div>
+                        ) : (
+                          <div className="badge badge-neutral">No response</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {/* Help Section */}
+        <div className="card bg-info text-info-content">
+          <div className="card-body">
+            <h3 className="card-title text-lg mb-3">
+              <Zap className="w-5 h-5" />
               Webhook Details
             </h3>
-            <div className="text-sm text-blue-800 space-y-2">
+            <div className="text-sm space-y-2">
               <p>
                 • Webhooks are sent 180 seconds after a survey response to allow
                 time for optional comments
@@ -404,14 +391,14 @@ export const WebhookSettings = (props: WebhookSettingsProps): JSX.Element => {
               </p>
               <p>
                 • Webhooks include HMAC-SHA256 signature in the{" "}
-                <code className="bg-blue-100 px-1 rounded">
+                <code className="bg-base-100 text-base-content px-1 rounded">
                   X-ClickNPS-Signature
                 </code>{" "}
                 header for verification
               </p>
-              <p>
-                • Example payload: <br />
-                <code className="bg-blue-100 px-2 py-1 rounded text-xs block mt-1 whitespace-pre">
+              <p>• Example payload:</p>
+              <div className="bg-base-100 text-base-content px-3 py-2 rounded text-xs mt-2">
+                <pre className="whitespace-pre-wrap">
                   {JSON.stringify(
                     {
                       survey_id: "abc123",
@@ -423,8 +410,8 @@ export const WebhookSettings = (props: WebhookSettingsProps): JSX.Element => {
                     null,
                     2,
                   )}
-                </code>
-              </p>
+                </pre>
+              </div>
             </div>
           </div>
         </div>

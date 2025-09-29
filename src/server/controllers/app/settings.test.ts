@@ -115,8 +115,11 @@ describe("Settings Controller", () => {
       expect(mockGetApiKeysByBusiness).toHaveBeenCalledWith(businessId);
       expect(response.headers.get("content-type")).toBe("text/html");
       expect(html).toContain("API Keys - Settings");
+      expect(html).toContain("API Keys");
       expect(html).toContain("Test Key");
       expect(html).toContain("ck_••••••••••••••••••••••••••••••••••••••••••••");
+      expect(html).toContain("list bg-neutral");
+      expect(html).toContain("btn btn-sm");
     });
 
     test("redirects unauthenticated users", async () => {
@@ -194,6 +197,7 @@ describe("Settings Controller", () => {
       expect(html).toContain("API Key Created Successfully");
       expect(html).toContain("ck_abcdef123456789");
       expect(html).toContain("Production API");
+      expect(html).toContain("alert alert-success");
     });
 
     test("rejects creation with empty name", async () => {
@@ -229,6 +233,7 @@ describe("Settings Controller", () => {
 
       expect(mockCreateApiKey).not.toHaveBeenCalled();
       expect(html).toContain("Name is required");
+      expect(html).toContain("alert alert-error");
     });
 
     test("rejects creation with invalid CSRF token", async () => {
@@ -258,6 +263,7 @@ describe("Settings Controller", () => {
 
       expect(mockCreateApiKey).not.toHaveBeenCalled();
       expect(html).toContain("Invalid security token");
+      expect(html).toContain("alert alert-error");
     });
   });
 
@@ -303,6 +309,7 @@ describe("Settings Controller", () => {
       expect(mockRotateApiKey).toHaveBeenCalledWith("key-123", businessId);
       expect(html).toContain("API Key Rotated Successfully");
       expect(html).toContain("ck_newtoken789");
+      expect(html).toContain("alert alert-info");
     });
 
     test("handles rotation of non-existent key", async () => {
@@ -338,6 +345,7 @@ describe("Settings Controller", () => {
       const html = await response.text();
 
       expect(html).toContain("Key not found or cannot be rotated");
+      expect(html).toContain("alert alert-error");
     });
   });
 
@@ -384,6 +392,7 @@ describe("Settings Controller", () => {
       expect(mockDeleteApiKey).toHaveBeenCalledWith("key-123", businessId);
       expect(html).toContain("Test Key");
       expect(html).toContain("has been revoked successfully");
+      expect(html).toContain("alert alert-warning");
     });
 
     test("handles revocation of non-existent key", async () => {
@@ -418,6 +427,7 @@ describe("Settings Controller", () => {
       const html = await response.text();
 
       expect(html).toContain("Key not found");
+      expect(html).toContain("alert alert-error");
     });
 
     test("handles failed deletion", async () => {
@@ -460,6 +470,7 @@ describe("Settings Controller", () => {
       const html = await response.text();
 
       expect(html).toContain("Key not found or already revoked");
+      expect(html).toContain("alert alert-error");
     });
   });
 
@@ -512,6 +523,7 @@ describe("Settings Controller", () => {
       const html = await response.text();
 
       expect(html).toContain("Invalid request");
+      expect(html).toContain("alert alert-error");
     });
 
     test("rejects unknown actions", async () => {
@@ -545,6 +557,7 @@ describe("Settings Controller", () => {
       const html = await response.text();
 
       expect(html).toContain("Invalid action");
+      expect(html).toContain("alert alert-error");
     });
   });
 

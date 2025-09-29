@@ -1,5 +1,16 @@
+import {
+  AlertTriangle,
+  CheckCircle,
+  Copy,
+  Key,
+  RefreshCw,
+  Shield,
+  Trash2,
+} from "lucide-react";
 import type { JSX } from "react";
+import { CsrfField } from "../components/csrf-field";
 import { Layout } from "../components/layouts";
+import { PageHeader } from "../components/page-header";
 import type { ApiKeysState } from "../controllers/app/settings";
 import type { AuthContext } from "../middleware/auth";
 
@@ -42,280 +53,232 @@ export const ApiKeysSettings = (props: ApiKeysSettingsProps): JSX.Element => {
       auth={props.auth}
       csrfToken={props.csrfToken}
     >
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="mb-8">
-            <div className="mb-4">
-              <h1 className="text-3xl font-bold mb-2">API Keys</h1>
-              <p className="text-gray-600">
-                Manage API keys for your business. Use these keys to
-                authenticate with our API.
-              </p>
-            </div>
-          </div>
+      <div>
+        <PageHeader
+          title="API Keys"
+          description="Manage API keys for your business. Use these keys to authenticate with our API."
+        />
 
-          {/* Success Messages */}
-          {state?.created && (
-            <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-4 rounded-lg mb-6">
-              <h3 className="font-semibold mb-2">
-                ✅ API Key Created Successfully
-              </h3>
-              <p className="mb-3">
+        {/* Success Messages */}
+        {state?.created && (
+          <div className="alert alert-success mb-6">
+            <CheckCircle className="w-6 h-6" />
+            <div>
+              <div className="font-semibold">API Key Created Successfully</div>
+              <div className="text-sm">
                 Your new API key <strong>"{state.created.name}"</strong> has
                 been created. Copy this key now - it won't be shown again.
-              </p>
-              <div className="bg-white border border-green-300 rounded p-3 mb-3">
+              </div>
+              <div className="bg-base-100 border border-base-300 rounded p-3 mt-3 mb-3">
                 <code className="text-sm break-all select-all">
                   {state.created.token}
                 </code>
               </div>
-              <button
-                type="button"
-                className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
-              >
+              <button type="button" className="btn btn-sm btn-success">
+                <Copy className="w-4 h-4" />
                 Copy Key
               </button>
             </div>
-          )}
+          </div>
+        )}
 
-          {state?.rotated && (
-            <div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-4 rounded-lg mb-6">
-              <h3 className="font-semibold mb-2">
-                🔄 API Key Rotated Successfully
-              </h3>
-              <p className="mb-3">
+        {state?.rotated && (
+          <div className="alert alert-info mb-6">
+            <RefreshCw className="w-6 h-6" />
+            <div>
+              <div className="font-semibold">API Key Rotated Successfully</div>
+              <div className="text-sm">
                 Your API key <strong>"{state.rotated.name}"</strong> has been
                 rotated. Copy this new key now - it won't be shown again.
-              </p>
-              <div className="bg-white border border-blue-300 rounded p-3 mb-3">
+              </div>
+              <div className="bg-base-100 border border-base-300 rounded p-3 mt-3 mb-3">
                 <code className="text-sm break-all select-all">
                   {state.rotated.token}
                 </code>
               </div>
-              <button
-                type="button"
-                className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
+              <button type="button" className="btn btn-sm btn-info">
+                <Copy className="w-4 h-4" />
                 Copy Key
               </button>
             </div>
-          )}
+          </div>
+        )}
 
-          {state?.revoked && (
-            <div className="bg-orange-50 border border-orange-200 text-orange-800 px-4 py-3 rounded-lg mb-6">
-              <p className="font-semibold">
-                🗑️ API Key "{state.revoked.name}" has been revoked successfully.
-              </p>
+        {state?.revoked && (
+          <div className="alert alert-warning mb-6">
+            <Trash2 className="w-6 h-6" />
+            <div className="font-semibold">
+              API Key "{state.revoked.name}" has been revoked successfully.
             </div>
-          )}
+          </div>
+        )}
 
-          {state?.error && (
-            <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg mb-6">
-              <p className="font-semibold">❌ Error: {state.error}</p>
-            </div>
-          )}
+        {state?.error && (
+          <div className="alert alert-error mb-6">
+            <AlertTriangle className="w-6 h-6" />
+            <span className="font-semibold">Error: {state.error}</span>
+          </div>
+        )}
 
-          {/* Create New Key Form */}
-          <div className="bg-white border border-gray-200 rounded-lg p-6 mb-8">
-            <h2 className="text-lg font-semibold mb-4">Create New API Key</h2>
+        {/* Create New Key Form */}
+        <div className="card bg-neutral text-neutral-content max-w-2xl mb-8">
+          <div className="card-body">
+            <h2 className="card-title text-lg mb-4">
+              <Key className="w-5 h-5" />
+              Create New API Key
+            </h2>
             <form
-              method="post"
+              method="POST"
               action="/settings/api-keys"
-              className="space-y-4"
+              className="space-y-6"
             >
-              {csrfToken && (
-                <input type="hidden" name="_csrf" value={csrfToken} />
-              )}
+              <CsrfField token={csrfToken} />
               <input type="hidden" name="action" value="create" />
 
-              <div>
-                <label
-                  htmlFor="name"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Key Name <span className="text-red-500">*</span>
-                </label>
+              <fieldset className="fieldset">
+                <legend className="fieldset-legend">Key Name *</legend>
                 <input
                   type="text"
                   id="name"
                   name="name"
                   required
+                  minLength={2}
+                  maxLength={100}
                   placeholder="e.g., Production API, Development"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="input w-full"
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  Choose a descriptive name to help you identify this key.
+                <p className="label">
+                  Choose a descriptive name to help you identify this key (2-100
+                  characters).
                 </p>
-              </div>
+              </fieldset>
 
-              <div>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                >
+              <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                <button type="submit" className="btn btn-primary">
+                  <Key className="w-4 h-4" />
                   Create API Key
                 </button>
               </div>
             </form>
           </div>
+        </div>
 
-          {/* API Keys List */}
-          <div className="bg-white border border-gray-200 rounded-lg">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold">Your API Keys</h2>
-            </div>
+        {/* API Keys List */}
+        <div className="mb-8">
+          <h2 className="text-xl font-bold mb-4">
+            <Shield className="w-6 h-6 inline mr-2" />
+            Your API Keys
+          </h2>
 
-            {apiKeys.length === 0 ? (
-              <div className="px-6 py-8 text-center">
-                <div className="text-gray-500 mb-4">
-                  <svg
-                    className="mx-auto h-12 w-12 text-gray-400"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <title>API Key Icon</title>
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
-                    />
-                  </svg>
+          {apiKeys.length === 0 ? (
+            <div className="text-center py-12 px-4">
+              <div className="hero bg-base-200 rounded-box p-8 max-w-md mx-auto">
+                <div className="hero-content text-center">
+                  <div className="max-w-md">
+                    <div className="mb-4">
+                      <Key className="w-16 h-16 mx-auto opacity-50" />
+                    </div>
+                    <h3 className="text-xl font-bold mb-2">No API keys yet</h3>
+                    <p className="mb-6 opacity-80">
+                      Create your first API key to start integrating with our
+                      API. API keys allow your applications to authenticate and
+                      make requests to our services.
+                    </p>
+                  </div>
                 </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  No API keys yet
-                </h3>
-                <p className="text-gray-600 mb-4">
-                  Create your first API key to start integrating with our API.
-                </p>
-                <p className="text-sm text-gray-500">
-                  API keys allow your applications to authenticate and make
-                  requests to our services.
-                </p>
               </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                      >
-                        Name
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                      >
-                        Key
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                      >
-                        Created
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                      >
-                        Last Used
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                      >
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {apiKeys.map((key) => (
-                      <tr key={key.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">
-                            {key.name}
+            </div>
+          ) : (
+            <ul className="list bg-neutral rounded-box shadow-md">
+              {apiKeys.map((key) => (
+                <li key={key.id} className="list-row">
+                  <div className="list-col-grow min-w-0">
+                    <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                      <div className="min-w-0 flex-1">
+                        <div className="text-lg font-semibold text-base-content mb-2">
+                          {key.name}
+                        </div>
+
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm opacity-60">Key:</span>
+                            <code className="text-sm bg-base-300 px-2 py-1 rounded font-mono">
+                              {formatKeyDisplay(key)}
+                            </code>
                           </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <code className="text-sm bg-gray-100 px-2 py-1 rounded">
-                            {formatKeyDisplay(key)}
-                          </code>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {formatDate(key.created_at)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {key.last_used_at
-                            ? formatDate(key.last_used_at)
-                            : "Never"}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                          <form
-                            method="post"
-                            action="/settings/api-keys"
-                            className="inline"
-                          >
-                            {csrfToken && (
-                              <input
-                                type="hidden"
-                                name="_csrf"
-                                value={csrfToken}
-                              />
-                            )}
-                            <input type="hidden" name="action" value="rotate" />
-                            <input type="hidden" name="id" value={key.id} />
-                            <button
-                              type="submit"
-                              className="text-blue-600 hover:text-blue-900 focus:outline-none focus:underline"
-                            >
-                              Rotate
-                            </button>
-                          </form>
 
-                          <form
-                            method="post"
-                            action="/settings/api-keys"
-                            className="inline"
-                          >
-                            {csrfToken && (
-                              <input
-                                type="hidden"
-                                name="_csrf"
-                                value={csrfToken}
-                              />
-                            )}
-                            <input type="hidden" name="action" value="revoke" />
-                            <input type="hidden" name="id" value={key.id} />
-                            <button
-                              type="submit"
-                              className="text-red-600 hover:text-red-900 focus:outline-none focus:underline"
-                            >
-                              Revoke
-                            </button>
-                          </form>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+                          <div className="flex flex-wrap gap-4 text-xs opacity-60">
+                            <span>Created: {formatDate(key.created_at)}</span>
+                            <span>
+                              Last used:{" "}
+                              {key.last_used_at
+                                ? formatDate(key.last_used_at)
+                                : "Never"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
 
-          {/* Help Section */}
-          <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-blue-900 mb-3">
+                      <div className="join join-vertical lg:join-horizontal">
+                        <form
+                          method="POST"
+                          action="/settings/api-keys"
+                          className="inline"
+                        >
+                          <CsrfField token={csrfToken} />
+                          <input type="hidden" name="action" value="rotate" />
+                          <input type="hidden" name="id" value={key.id} />
+                          <button
+                            type="submit"
+                            className="btn btn-sm join-item"
+                            title="Generate a new key for this API key"
+                          >
+                            <RefreshCw className="w-4 h-4" />
+                            Rotate
+                          </button>
+                        </form>
+
+                        <form
+                          method="POST"
+                          action="/settings/api-keys"
+                          className="inline"
+                        >
+                          <CsrfField token={csrfToken} />
+                          <input type="hidden" name="action" value="revoke" />
+                          <input type="hidden" name="id" value={key.id} />
+                          <button
+                            type="submit"
+                            className="btn btn-sm btn-error join-item"
+                            title="Permanently delete this API key"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Revoke
+                          </button>
+                        </form>
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {/* Help Section */}
+        <div className="card bg-info text-info-content">
+          <div className="card-body">
+            <h3 className="card-title text-lg mb-3">
+              <Shield className="w-5 h-5" />
               Using Your API Keys
             </h3>
-            <div className="text-sm text-blue-800 space-y-2">
+            <div className="text-sm space-y-2">
               <p>
                 • Include your API key in the{" "}
-                <code className="bg-blue-100 px-1 rounded">Authorization</code>{" "}
+                <code className="bg-base-100 text-base-content px-1 rounded">
+                  Authorization
+                </code>{" "}
                 header:
-                <code className="bg-blue-100 px-1 rounded ml-1">
+                <code className="bg-base-100 text-base-content px-1 rounded ml-1">
                   Bearer YOUR_API_KEY
                 </code>
               </p>

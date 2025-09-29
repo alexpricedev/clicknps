@@ -1,8 +1,8 @@
 import type { JSX } from "react";
 
 export interface PageHeaderProps {
-  title: string;
-  description?: string;
+  title: string | JSX.Element;
+  description?: string | JSX.Element;
   children?: JSX.Element | JSX.Element[];
 }
 

@@ -1,28 +1,24 @@
+import { ArrowLeft, Calendar, MessageSquare, Users } from "lucide-react";
 import type { JSX } from "react";
 import { Layout } from "../components/layouts";
+import { PageHeader } from "../components/page-header";
+import type { AuthContext } from "../middleware/auth";
 import type { Survey, SurveyResponse } from "../services/surveys";
 
 export type SurveyResponsesState = Record<string, never>;
 
-type PublicSurveyResponsesProps = {
-  isAuthenticated: false;
-};
-
-type AuthSurveyResponsesProps = {
-  isAuthenticated: true;
+export type SurveyResponsesProps = {
+  auth: AuthContext;
   survey: Survey;
   responses: SurveyResponse[];
+  csrfToken: string | null;
   state?: SurveyResponsesState;
 };
 
-export type SurveyResponsesProps =
-  | PublicSurveyResponsesProps
-  | AuthSurveyResponsesProps;
-
-const getScoreColor = (score: number): string => {
-  if (score >= 9) return "text-green-700 bg-green-100";
-  if (score >= 7) return "text-yellow-700 bg-yellow-100";
-  return "text-red-700 bg-red-100";
+const getScoreBadgeClass = (score: number): string => {
+  if (score >= 9) return "badge-success";
+  if (score >= 7) return "badge-warning";
+  return "badge-error";
 };
 
 const formatDate = (date: Date): string => {
@@ -37,128 +33,109 @@ const formatDate = (date: Date): string => {
 
 export const SurveyResponses = (props: SurveyResponsesProps): JSX.Element => {
   return (
-    <Layout title="Survey Responses" name="survey-responses">
-      <div className="container mx-auto px-4 py-8">
-        {props.isAuthenticated ? (
+    <Layout
+      title="Survey Responses"
+      name="survey-responses"
+      auth={props.auth}
+      csrfToken={props.csrfToken}
+    >
+      <div>
+        <PageHeader
+          title={
+            <>
+              {props.survey.title || "Untitled Survey"}
+              <span className="font-normal text-lg text-accent font-mono ml-3 inline-block">
+                {props.survey.survey_id}
+              </span>
+            </>
+          }
+          description="Survey Responses"
+        >
+          <a href="/surveys" className="btn btn-ghost">
+            <ArrowLeft size={20} />
+            Back to Surveys
+          </a>
+        </PageHeader>
+
+        {props.responses.length > 0 ? (
           <>
-            <div className="flex justify-between items-center mb-8">
-              <div>
-                <h1 className="text-3xl font-bold mb-2">Survey Responses</h1>
-                <p className="text-gray-600">
-                  {props.survey.title || "Untitled Survey"} (ID:{" "}
-                  {props.survey.survey_id})
-                </p>
+            <div className="flex flex-wrap gap-4 mb-6 text-sm">
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                <span>Total responses: {props.responses.length}</span>
               </div>
-              <div className="flex gap-2">
-                <a
-                  href={`/surveys/${props.survey.survey_id}/mint`}
-                  className="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                >
-                  Mint Links
-                </a>
-                <a
-                  href="/surveys"
-                  className="px-4 py-2 bg-gray-600 text-white text-sm rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
-                >
-                  Back to Surveys
-                </a>
+              <div className="flex items-center gap-2">
+                <MessageSquare className="w-4 h-4" />
+                <span>
+                  {props.responses.filter((r) => r.comment).length} with
+                  comments
+                </span>
               </div>
             </div>
 
-            {props.responses.length > 0 ? (
-              <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50 border-b border-gray-200">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Response Date
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          NPS Score
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Subject ID
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Comment
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {props.responses.map((response) => (
-                        <tr key={response.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {formatDate(response.responded_at)}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span
-                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getScoreColor(
-                                response.score,
-                              )}`}
-                            >
-                              {response.score}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            <code className="bg-gray-100 px-2 py-1 rounded text-sm">
-                              {response.subject_id}
-                            </code>
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-900 max-w-xs">
-                            {response.comment ? (
-                              <div
-                                className="truncate"
-                                title={response.comment}
-                              >
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 items-start">
+              {props.responses.map((response) => (
+                <div key={response.id} className="card bg-neutral shadow-md">
+                  <div className="card-body">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="card-title text-lg">
+                        {response.subject_id}
+                      </h3>
+                      <div
+                        className={`badge ${getScoreBadgeClass(response.score)} badge-lg font-bold`}
+                      >
+                        {response.score}
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Calendar className="w-4 h-4 opacity-60" />
+                        <span className="opacity-80">
+                          {formatDate(response.responded_at)}
+                        </span>
+                      </div>
+
+                      {response.comment && (
+                        <div className="pt-2 border-t border-base-300">
+                          <div className="flex items-start gap-2">
+                            <MessageSquare className="w-4 h-4 opacity-60 mt-0.5" />
+                            <div className="flex-1">
+                              <p className="text-sm opacity-90 leading-relaxed">
                                 {response.comment}
-                              </div>
-                            ) : (
-                              <span className="text-gray-500 italic">
-                                No comment
-                              </span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div className="bg-gray-50 px-6 py-3 border-t border-gray-200">
-                  <p className="text-sm text-gray-600">
-                    Total responses: {props.responses.length}
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 max-w-md mx-auto">
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    No responses yet
-                  </h3>
-                  <p className="text-gray-600 mb-4">
-                    This survey hasn't received any responses yet. Mint some
-                    links and share them to start collecting feedback.
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="text-center py-12 px-4">
+            <div className="hero bg-base-200 rounded-box p-8 max-w-md mx-auto">
+              <div className="hero-content text-center">
+                <div className="max-w-md">
+                  <div className="mb-4">
+                    <MessageSquare className="w-16 h-16 mx-auto opacity-50" />
+                  </div>
+                  <h3 className="text-xl font-bold mb-2">No responses yet</h3>
+                  <p className="mb-6 opacity-80">
+                    This survey hasn't received any responses yet. Share your
+                    survey links to start collecting feedback.
                   </p>
                   <a
                     href={`/surveys/${props.survey.survey_id}/mint`}
-                    className="inline-flex px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    className="btn btn-primary"
                   >
                     Mint Links
                   </a>
                 </div>
               </div>
-            )}
-          </>
-        ) : (
-          <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded">
-            <p>
-              Please{" "}
-              <a href="/login" className="underline">
-                log in
-              </a>{" "}
-              to view survey responses.
-            </p>
+            </div>
           </div>
         )}
       </div>

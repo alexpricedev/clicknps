@@ -248,6 +248,7 @@ describe("Surveys Controller", () => {
       expect(html).toContain("Default Link Expiry");
       expect(html).toContain("input");
       expect(html).toContain("textarea");
+      expect(html).toContain("Back to Surveys");
     });
 
     test("redirects unauthenticated users", async () => {
@@ -492,11 +493,13 @@ describe("Surveys Controller", () => {
       const html = await response.text();
 
       expect(response.headers.get("content-type")).toBe("text/html");
-      expect(html).toContain("Mint Links for Survey");
+      expect(html).toContain("Existing Survey");
       expect(html).toContain("Existing Survey");
       expect(html).toContain('name="subjectId"');
       expect(html).toContain('name="ttlDays"');
       expect(html).toContain("Generate NPS Links");
+      expect(html).toContain("Back to Surveys");
+      expect(html).toContain("fieldset");
     });
 
     test("returns 404 for non-existent survey", async () => {
@@ -556,15 +559,27 @@ describe("Surveys Controller", () => {
       expect(html).toContain(
         "subject &quot;<!-- -->customer-123<!-- -->&quot;",
       );
-      expect(html).toContain("Generated NPS Links (Score 0-10):");
+      expect(html).toContain("Generated NPS Links (Score 0-10)");
 
       // Verify all links are rendered
       for (let score = 0; score <= 10; score++) {
-        expect(html).toContain(`${score}<!-- -->:`);
+        expect(html).toContain(`data-score="${score}"`);
         expect(html).toContain(`http://localhost:3000/r/token${score}`);
       }
 
       expect(html).toContain("10/20/2025");
+    });
+
+    test("redirects unauthenticated users", async () => {
+      const request = createBunRequest(
+        "http://localhost:3000/surveys/existing-survey/mint",
+        {},
+        { surveyId: "existing-survey" },
+      );
+      const response = await surveys.mintForm(request);
+
+      expect(response.status).toBe(303);
+      expect(response.headers.get("location")).toBe("/login");
     });
   });
 
@@ -801,22 +816,26 @@ describe("Surveys Controller", () => {
       const html = await response.text();
 
       expect(response.headers.get("content-type")).toBe("text/html");
-      expect(html).toContain("Survey Responses");
       expect(html).toContain("Existing Survey");
+      expect(html).toContain("Survey Responses");
       expect(html).toContain("existing-survey");
 
-      // Check for response data
+      // Check for response data in card format
       expect(html).toContain("Great service!");
       expect(html).toContain("customer-123");
       expect(html).toContain("customer-456");
-      expect(html).toContain("No comment");
 
-      // Check for navigation buttons
-      expect(html).toContain("Mint Links");
+      // Check for DaisyUI card structure
+      expect(html).toContain("card bg-neutral");
+      expect(html).toContain("badge");
+      expect(html).toContain("card-title");
+
+      // Check for navigation button with back arrow
       expect(html).toContain("Back to Surveys");
 
-      // Check for response count (React renders with HTML comments)
+      // Check for response count and stats
       expect(html).toContain("Total responses: <!-- -->2");
+      expect(html).toContain("with comments");
     });
 
     test("renders empty state when survey has no responses", async () => {
@@ -860,7 +879,8 @@ describe("Surveys Controller", () => {
       expect(html).toContain(
         "This survey hasn&#x27;t received any responses yet",
       );
-      expect(html).toContain("Mint some links");
+      expect(html).toContain("hero bg-base-200");
+      expect(html).toContain("Mint Links");
     });
 
     test("returns 404 for non-existent survey", async () => {

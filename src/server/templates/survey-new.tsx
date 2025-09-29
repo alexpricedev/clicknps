@@ -1,4 +1,4 @@
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, ArrowLeft } from "lucide-react";
 import type { JSX } from "react";
 import { CsrfField } from "../components/csrf-field";
 import { Layout } from "../components/layouts";
@@ -28,7 +28,12 @@ export const SurveyNew = (props: SurveyNewProps): JSX.Element => {
         <PageHeader
           title="Create New Survey"
           description="Create a survey to generate NPS links. You can mint links for different subjects after creating the survey."
-        />
+        >
+          <a href="/surveys" className="btn btn-ghost">
+            <ArrowLeft size={20} />
+            Back to Surveys
+          </a>
+        </PageHeader>
 
         <div className="card bg-neutral text-neutral-content max-w-2xl">
           <div className="card-body">

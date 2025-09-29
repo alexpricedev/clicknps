@@ -1,6 +1,9 @@
+import { AlertTriangle, ArrowLeft, CheckCircle } from "lucide-react";
 import type { JSX } from "react";
 import { CsrfField } from "../components/csrf-field";
 import { Layout } from "../components/layouts";
+import { PageHeader } from "../components/page-header";
+import type { AuthContext } from "../middleware/auth";
 import type { Survey } from "../services/surveys";
 
 export interface SurveyMintState {
@@ -12,85 +15,98 @@ export interface SurveyMintState {
   };
 }
 
-type PublicSurveyMintProps = {
-  isAuthenticated: false;
-};
-
-type AuthSurveyMintProps = {
-  isAuthenticated: true;
+export type SurveyMintProps = {
+  auth: AuthContext;
   survey: Survey;
   state?: SurveyMintState;
   createCsrfToken: string | null;
+  csrfToken: string | null;
 };
-
-export type SurveyMintProps = PublicSurveyMintProps | AuthSurveyMintProps;
 
 export const SurveyMint = (props: SurveyMintProps): JSX.Element => {
   return (
-    <Layout title="Mint Survey Links" name="survey-mint">
-      <div className="container mx-auto px-4 py-8">
-        {props.isAuthenticated ? (
-          <>
-            <div className="mb-6">
-              <h1 className="text-3xl font-bold mb-2">Mint Links for Survey</h1>
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <h2 className="font-semibold text-lg text-gray-900 mb-1">
-                  {props.survey.title || "Untitled Survey"}
-                </h2>
-                <p className="text-sm text-gray-600 mb-2">
-                  ID:{" "}
-                  <code className="bg-gray-100 px-1 rounded">
-                    {props.survey.survey_id}
-                  </code>
-                </p>
-                {props.survey.description && (
-                  <p className="text-sm text-gray-700 mb-2">
-                    {props.survey.description}
-                  </p>
-                )}
-                <p className="text-sm text-gray-600">
-                  Default TTL: {props.survey.ttl_days} days
-                </p>
+    <Layout
+      title="Mint Survey Links"
+      name="survey-mint"
+      auth={props.auth}
+      csrfToken={props.csrfToken}
+    >
+      <div>
+        <PageHeader
+          title={
+            <>
+              {props.survey.title || "Untitled Survey"}
+              <span className="font-normal text-lg text-accent font-mono ml-3 inline-block">
+                {props.survey.survey_id}
+              </span>
+            </>
+          }
+          description="Create a complete set of NPS feedback links (scores 0-10) for a specific customer or subject. Share the appropriate link based on their satisfaction level to streamline feedback collection."
+        >
+          <a href="/surveys" className="btn btn-ghost">
+            <ArrowLeft size={20} />
+            Back to Surveys
+          </a>
+        </PageHeader>
+
+        {props.state?.success && (
+          <div className="alert alert-success mb-6">
+            <CheckCircle className="w-6 h-6" />
+            <div>
+              <div className="font-semibold">Links generated successfully!</div>
+              <div className="text-sm">
+                NPS links for subject "{props.state.success.subjectId}" expire
+                on{" "}
+                {new Date(props.state.success.expires_at).toLocaleDateString()}.
               </div>
             </div>
+          </div>
+        )}
 
-            {props.state?.success && (
-              <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded mb-6">
-                <p className="font-semibold mb-2">
-                  ✅ Links generated successfully!
-                </p>
-                <p className="text-sm mb-4">
-                  NPS links for subject "{props.state.success.subjectId}" expire
-                  on{" "}
-                  {new Date(
-                    props.state.success.expires_at,
-                  ).toLocaleDateString()}
-                  .
-                </p>
-
-                <div className="bg-white border border-gray-300 rounded p-4">
-                  <h3 className="font-semibold mb-3 text-gray-900">
-                    Generated NPS Links (Score 0-10):
-                  </h3>
-                  <div className="grid gap-2 text-sm">
-                    {Object.entries(props.state.success.links).map(
-                      ([score, url]) => (
-                        <div key={score} className="flex items-center gap-3">
-                          <span className="w-8 text-right font-mono text-gray-600">
-                            {score}:
-                          </span>
-                          <code className="flex-1 text-xs bg-gray-100 px-2 py-1 rounded text-gray-800">
-                            {url}
-                          </code>
-                        </div>
-                      ),
-                    )}
-                  </div>
-                </div>
+        {props.state?.success && (
+          <div className="card bg-neutral text-neutral-content mb-6">
+            <div className="card-body">
+              <h3 className="card-title mb-4">
+                Generated NPS Links (Score 0-10):
+              </h3>
+              <div className="grid gap-2 text-sm">
+                {Object.entries(props.state.success.links).map(
+                  ([score, url]) => (
+                    <div key={score} className="link-item relative">
+                      <code
+                        className="block text-xs bg-base-200 px-2 py-1 rounded pl-8 font-mono"
+                        data-score={score}
+                        style={
+                          {
+                            "--score": `"${score}:"`,
+                          } as React.CSSProperties & { "--score": string }
+                        }
+                      >
+                        {url}
+                      </code>
+                    </div>
+                  ),
+                )}
               </div>
-            )}
 
-            <div className="bg-white border border-gray-200 rounded-lg p-6 max-w-2xl">
+              <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-base-300 mt-6">
+                <a
+                  href={`/surveys/${props.survey.survey_id}/mint`}
+                  className="btn btn-primary"
+                >
+                  Mint More Links
+                </a>
+                <a href="/surveys" className="btn btn-ghost">
+                  Back to Surveys
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!props.state?.success && (
+          <div className="card bg-neutral text-neutral-content max-w-2xl">
+            <div className="card-body">
               <form
                 method="POST"
                 action={`/surveys/${props.survey.survey_id}/mint`}
@@ -99,18 +115,14 @@ export const SurveyMint = (props: SurveyMintProps): JSX.Element => {
                 <CsrfField token={props.createCsrfToken} />
 
                 {props.state?.error && (
-                  <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded">
-                    <p>{props.state.error}</p>
+                  <div className="alert alert-error">
+                    <AlertTriangle className="w-6 h-6" />
+                    <span>{props.state.error}</span>
                   </div>
                 )}
 
-                <div>
-                  <label
-                    htmlFor="subjectId"
-                    className="block text-sm font-medium text-gray-700 mb-2"
-                  >
-                    Subject ID *
-                  </label>
+                <fieldset className="fieldset">
+                  <legend className="fieldset-legend">Subject ID *</legend>
                   <input
                     type="text"
                     id="subjectId"
@@ -119,22 +131,19 @@ export const SurveyMint = (props: SurveyMintProps): JSX.Element => {
                     required
                     pattern="^[a-zA-Z0-9_-]+$"
                     title="Subject ID can only contain letters, numbers, underscores, and hyphens"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="input w-full"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="label">
                     Unique identifier for who this survey is for (e.g., customer
                     ID, user ID, order ID). Only letters, numbers, underscores,
                     and hyphens.
                   </p>
-                </div>
+                </fieldset>
 
-                <div>
-                  <label
-                    htmlFor="ttlDays"
-                    className="block text-sm font-medium text-gray-700 mb-2"
-                  >
+                <fieldset className="fieldset">
+                  <legend className="fieldset-legend">
                     Link Expiry (Days)
-                  </label>
+                  </legend>
                   <input
                     type="number"
                     id="ttlDays"
@@ -143,40 +152,24 @@ export const SurveyMint = (props: SurveyMintProps): JSX.Element => {
                     defaultValue={props.survey.ttl_days}
                     min={1}
                     max={365}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="input"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="label">
                     Override the default TTL for this specific set of links
                     (optional, defaults to {props.survey.ttl_days} days).
                   </p>
-                </div>
+                </fieldset>
 
-                <div className="flex gap-4">
-                  <button
-                    type="submit"
-                    className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                  >
+                <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                  <button type="submit" className="btn btn-primary">
                     Generate NPS Links
                   </button>
-                  <a
-                    href="/surveys"
-                    className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                  >
-                    Back to Surveys
+                  <a href="/surveys" className="btn btn-ghost">
+                    Cancel
                   </a>
                 </div>
               </form>
             </div>
-          </>
-        ) : (
-          <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded">
-            <p>
-              Please{" "}
-              <a href="/login" className="underline">
-                log in
-              </a>{" "}
-              to mint survey links.
-            </p>
           </div>
         )}
       </div>
