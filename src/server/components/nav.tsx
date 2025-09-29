@@ -15,7 +15,6 @@ const authNavLinks = [
 const settingsLinks = [
   { href: "/settings/api-keys", label: "API Keys" },
   { href: "/settings/webhooks", label: "Webhooks" },
-  { href: "/settings/billing", label: "Billing & usage" },
   { href: "/settings/profile", label: "Profile" },
   { href: "/settings/team", label: "Team" },
   { href: "/settings/support", label: "Support" },

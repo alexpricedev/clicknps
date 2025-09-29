@@ -1,6 +1,5 @@
 import {
   about,
-  billing,
   dashboard,
   docs,
   examples,
@@ -51,7 +50,6 @@ export const appRoutes = {
     GET: settings.webhooks,
     POST: settings.webhooks,
   }),
-  "/settings/billing": billing.index,
   "/settings/profile": profile.index,
   "/settings/team": team.index,
   "/settings/support": support.index,
