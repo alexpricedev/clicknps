@@ -50,6 +50,8 @@ export interface SurveyStats {
   response_count: number;
   comment_count: number;
   average_nps: number | null;
+  unique_subjects_count: number;
+  response_rate: number | null;
 }
 
 /**
@@ -116,6 +118,18 @@ export const mintSurveyLinks = async (
   survey: Survey,
   request: MintLinksRequest,
 ): Promise<MintLinksResponse> => {
+  // Check if links already exist for this subject
+  const existingLinks = await db`
+    SELECT COUNT(*) as count 
+    FROM survey_links 
+    WHERE survey_id = ${survey.id} AND subject_id = ${request.subject_id}
+    LIMIT 1
+  `;
+
+  if (Number(existingLinks[0].count) > 0) {
+    throw new Error("Links already exist for this subject");
+  }
+
   const ttlDays = request.ttl_days || survey.ttl_days;
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + ttlDays);
@@ -358,7 +372,9 @@ export const getSurveyStats = async (
       s.id as survey_id,
       COUNT(r.id) as response_count,
       COUNT(CASE WHEN r.comment IS NOT NULL AND r.comment != '' THEN 1 END) as comment_count,
-      ROUND(AVG(sl.score), 1) as average_nps
+      ROUND(AVG(CASE WHEN r.id IS NOT NULL THEN sl.score END), 1) as average_nps,
+      COUNT(DISTINCT sl.subject_id) as unique_subjects_count,
+      COUNT(DISTINCT CASE WHEN r.id IS NOT NULL THEN sl.subject_id END) as respondents_count
     FROM surveys s
     LEFT JOIN survey_links sl ON s.id = sl.survey_id
     LEFT JOIN responses r ON sl.id = r.survey_link_id
@@ -368,10 +384,21 @@ export const getSurveyStats = async (
   `;
 
   /* biome-ignore lint/suspicious/noExplicitAny: todo */
-  return result.map((row: any) => ({
-    survey_id: row.survey_id,
-    response_count: Number(row.response_count) || 0,
-    comment_count: Number(row.comment_count) || 0,
-    average_nps: row.average_nps ? Number(row.average_nps) : null,
-  })) as SurveyStats[];
+  return result.map((row: any) => {
+    const uniqueSubjectsCount = Number(row.unique_subjects_count) || 0;
+    const respondentsCount = Number(row.respondents_count) || 0;
+    const responseRate =
+      uniqueSubjectsCount > 0
+        ? Math.round((respondentsCount / uniqueSubjectsCount) * 100)
+        : null;
+
+    return {
+      survey_id: row.survey_id,
+      response_count: Number(row.response_count) || 0,
+      comment_count: Number(row.comment_count) || 0,
+      average_nps: row.average_nps ? Number(row.average_nps) : null,
+      unique_subjects_count: uniqueSubjectsCount,
+      response_rate: responseRate,
+    };
+  }) as SurveyStats[];
 };

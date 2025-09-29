@@ -1,4 +1,4 @@
-import { MessageSquare, Plus, TrendingUp, Users } from "lucide-react";
+import { MessageSquare, Percent, Plus, TrendingUp, Users } from "lucide-react";
 import type { JSX } from "react";
 import { Layout } from "../components/layouts";
 import { PageHeader } from "../components/page-header";
@@ -31,7 +31,7 @@ export const Surveys = (props: SurveysProps): JSX.Element => {
       <div>
         <PageHeader
           title="Your Surveys"
-          description="Manage your NPS surveys and generate links for different subjects."
+          description="Manage your NPS surveys, view responses, and manually generate links for different subjects."
         >
           <a href="/surveys/new" className="btn btn-primary">
             <Plus size={24} />
@@ -76,12 +76,21 @@ export const Surveys = (props: SurveysProps): JSX.Element => {
               const responseCount = surveyStats?.response_count || 0;
               const commentCount = surveyStats?.comment_count || 0;
               const avgNPS = surveyStats?.average_nps;
+              const responseRate = surveyStats?.response_rate ?? null;
 
               // NPS color coding: 0-6 (red), 7-8 (yellow), 9-10 (green)
               const getNPSColor = (score: number | null) => {
                 if (score === null) return "text-base-content/60";
                 if (score <= 6) return "text-error";
                 if (score <= 8) return "text-warning";
+                return "text-success";
+              };
+
+              // Response rate color coding: <30% (red), 30-70% (yellow), >70% (green)
+              const getResponseRateColor = (rate: number | null) => {
+                if (rate === null) return "text-base-content/60";
+                if (rate < 30) return "text-error";
+                if (rate < 70) return "text-warning";
                 return "text-success";
               };
 
@@ -125,6 +134,15 @@ export const Surveys = (props: SurveysProps): JSX.Element => {
                               {avgNPS !== null && avgNPS !== undefined
                                 ? avgNPS.toFixed(1)
                                 : "—"}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Percent className="w-3 h-3" />
+                            <span
+                              className={getResponseRateColor(responseRate)}
+                            >
+                              Response Rate:{" "}
+                              {responseRate !== null ? `${responseRate}%` : "—"}
                             </span>
                           </div>
                         </div>

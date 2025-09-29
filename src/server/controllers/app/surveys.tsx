@@ -334,7 +334,19 @@ export const surveys = {
           successState,
         ),
       );
-    } catch (_error) {
+    } catch (error) {
+      // Check for our custom error message
+      if (
+        error instanceof Error &&
+        error.message === "Links already exist for this subject"
+      ) {
+        return redirect(
+          buildRedirectUrlWithStateForSurveyMint(`/surveys/${surveyId}/mint`, {
+            error: "Links already exist for this subject",
+          }),
+        );
+      }
+      // Generic error for everything else
       return redirect(
         buildRedirectUrlWithStateForSurveyMint(`/surveys/${surveyId}/mint`, {
           error: "Internal server error",

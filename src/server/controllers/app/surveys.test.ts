@@ -120,12 +120,32 @@ const mockGetSurveyResponses = mock((surveyId: string) => {
   return [];
 });
 
+const mockGetSurveyStats = mock(() => [
+  {
+    survey_id: "survey-1",
+    response_count: 2,
+    comment_count: 1,
+    average_nps: 8.5,
+    unique_subjects_count: 3,
+    response_rate: 67,
+  },
+  {
+    survey_id: "survey-2",
+    response_count: 0,
+    comment_count: 0,
+    average_nps: null,
+    unique_subjects_count: 0,
+    response_rate: null,
+  },
+]);
+
 mock.module("../../services/surveys", () => ({
   listSurveys: mockListSurveys,
   findSurvey: mockFindSurvey,
   createSurvey: mockCreateSurvey,
   mintSurveyLinks: mockMintSurveyLinks,
   getSurveyResponses: mockGetSurveyResponses,
+  getSurveyStats: mockGetSurveyStats,
 }));
 
 import { surveys } from "./surveys";
@@ -141,6 +161,7 @@ describe("Surveys Controller", () => {
     mockCreateSurvey.mockClear();
     mockMintSurveyLinks.mockClear();
     mockGetSurveyResponses.mockClear();
+    mockGetSurveyStats.mockClear();
   });
 
   afterAll(async () => {
@@ -173,6 +194,8 @@ describe("Surveys Controller", () => {
       expect(html).toContain("employee-nps");
       expect(html).toContain("Create Survey");
       expect(html).toContain("Mint Links");
+      expect(html).toContain("Response Rate:");
+      expect(html).toContain("67%");
     });
 
     test("displays success state after survey creation", async () => {
@@ -691,6 +714,60 @@ describe("Surveys Controller", () => {
       );
       expect(response.headers.get("location")).toContain("error");
       expect(mockMintSurveyLinks).not.toHaveBeenCalled();
+    });
+
+    test("returns specific error when links already exist for subject", async () => {
+      const [sessionId] = await createTestSession();
+      const cookieHeader = createSessionCookie(sessionId);
+      const csrfToken = await createCsrfToken(
+        sessionId,
+        "POST",
+        "/surveys/existing-survey/mint",
+      );
+
+      // Mock mintSurveyLinks to throw the duplicate error
+      mockMintSurveyLinks.mockImplementationOnce(() => {
+        throw new Error("Links already exist for this subject");
+      });
+
+      const mockFormData = new FormData();
+      mockFormData.set("subjectId", "duplicate-customer");
+      mockFormData.set("_csrf", csrfToken);
+
+      const request = createBunRequest(
+        "http://localhost:3000/surveys/existing-survey/mint",
+        {
+          method: "POST",
+          headers: {
+            Origin: "http://localhost:3000",
+            Cookie: cookieHeader,
+          },
+          body: mockFormData,
+        },
+        { surveyId: "existing-survey" },
+      );
+
+      const response = await surveys.mint(request);
+
+      expect(mockMintSurveyLinks).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: "existing-survey-id",
+          survey_id: "existing-survey",
+        }),
+        {
+          subject_id: "duplicate-customer",
+          ttl_days: undefined,
+        },
+      );
+
+      expect(response.status).toBe(303);
+      expect(response.headers.get("location")).toContain(
+        "/surveys/existing-survey/mint",
+      );
+      expect(response.headers.get("location")).toContain("error");
+      expect(
+        decodeURIComponent(response.headers.get("location") || ""),
+      ).toContain("Links already exist for this subject");
     });
   });
 
