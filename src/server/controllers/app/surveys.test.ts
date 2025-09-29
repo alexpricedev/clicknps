@@ -242,6 +242,20 @@ describe("Surveys Controller", () => {
       expect(html).toContain('name="description"');
       expect(html).toContain('name="ttlDays"');
       expect(html).toContain("Create Survey");
+      expect(html).toContain("Survey Name");
+      expect(html).toContain("Survey ID");
+      expect(html).toContain("Description");
+      expect(html).toContain("Default Link Expiry");
+      expect(html).toContain("input");
+      expect(html).toContain("textarea");
+    });
+
+    test("redirects unauthenticated users", async () => {
+      const request = createBunRequest("http://localhost:3000/surveys/new");
+      const response = await surveys.new(request);
+
+      expect(response.status).toBe(303);
+      expect(response.headers.get("location")).toBe("/login");
     });
   });
 

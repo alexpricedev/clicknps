@@ -26,3 +26,24 @@ body {
   margin: 0;
   min-height: 100vh;
 }
+
+/* Theme customisations */
+
+@layer base {
+  ::selection {
+    @apply bg-accent text-white;
+  }
+
+  input::selection,
+  textarea::selection {
+    @apply bg-accent text-white;
+  }
+}
+
+@utility fieldset-legend {
+  @apply text-lg;
+}
+
+@utility label {
+  @apply break-words whitespace-normal;
+}

@@ -73,29 +73,33 @@ export const surveys = {
   },
 
   async new(req: BunRequest): Promise<Response> {
-    const [auth, sessionId] = await Promise.all([
-      getAuthContext(req),
-      getSessionIdFromCookies(req.headers.get("cookie")),
-    ]);
+    const authRequired = await requireAuth(req);
+    if (authRequired) return authRequired;
 
-    if (!auth.isAuthenticated || !sessionId) {
-      return render(<SurveyNew isAuthenticated={false} />);
-    }
-
+    const auth = await getAuthContext(req);
     const url = new URL(req.url);
     const state = parseNewState(url);
 
-    const createCsrfTokenValue = await createCsrfToken(
-      sessionId,
-      "POST",
-      "/surveys/new",
-    );
+    let createCsrfTokenValue: string | null = null;
+    let csrfToken: string | null = null;
+
+    const cookieHeader = req.headers.get("cookie");
+    const sessionId = getSessionIdFromCookies(cookieHeader);
+    if (sessionId) {
+      const [createToken, logoutToken] = await Promise.all([
+        createCsrfToken(sessionId, "POST", "/surveys/new"),
+        createCsrfToken(sessionId, "POST", "/auth/logout"),
+      ]);
+      createCsrfTokenValue = createToken;
+      csrfToken = logoutToken;
+    }
 
     return render(
       <SurveyNew
-        isAuthenticated={true}
+        auth={auth}
         state={state}
         createCsrfToken={createCsrfTokenValue}
+        csrfToken={csrfToken}
       />,
     );
   },

@@ -1,4 +1,11 @@
-import { MessageSquare, Percent, Plus, TrendingUp, Users } from "lucide-react";
+import {
+  CheckCircle,
+  MessageSquare,
+  Percent,
+  Plus,
+  TrendingUp,
+  Users,
+} from "lucide-react";
 import type { JSX } from "react";
 import { Layout } from "../components/layouts";
 import { PageHeader } from "../components/page-header";
@@ -41,20 +48,7 @@ export const Surveys = (props: SurveysProps): JSX.Element => {
 
         {props.state?.created && (
           <div className="alert alert-success mb-6">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6 shrink-0 stroke-current"
-              fill="none"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
+            <CheckCircle className="w-6 h-6" />
             <div>
               <div className="font-semibold">
                 Survey "{props.state.created.title}" (ID:{" "}

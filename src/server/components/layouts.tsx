@@ -37,7 +37,7 @@ export function Layout({
         <header className="bg-base-300 mb-8 border-b border-base-content/15 px-4 sm:px-0">
           <Nav page={name} auth={auth} csrfToken={csrfToken} />
         </header>
-        <main className="container mx-auto px-4 sm:px-0">{children}</main>
+        <main className="container mx-auto px-4 sm:px-0 pb-8">{children}</main>
         <script type="module" src="/assets/main.js" />
       </body>
     </html>
