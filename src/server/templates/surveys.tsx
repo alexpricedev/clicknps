@@ -96,7 +96,7 @@ export const Surveys = (props: SurveysProps): JSX.Element => {
                             href={`/surveys/${survey.survey_id}/responses`}
                             className="link link-hover"
                           >
-                            {survey.title || "Untitled Survey"}
+                            {survey.title}
                           </a>
                           <span className="font-normal text-xs text-accent font-mono ml-2 inline-block">
                             {survey.survey_id}

@@ -64,6 +64,7 @@ describe("Survey Responses Service", () => {
       const survey = await createSurvey(
         testBusinessId,
         "test-survey-no-responses",
+        { title: "Test Survey" },
       );
       const responses = await getSurveyResponses(survey.id);
 
@@ -72,7 +73,9 @@ describe("Survey Responses Service", () => {
 
     it("should return responses with correct data and ordering", async () => {
       const surveyId = "test-survey-get-responses";
-      const survey = await createSurvey(testBusinessId, surveyId);
+      const survey = await createSurvey(testBusinessId, surveyId, {
+        title: "Test Survey",
+      });
 
       // Mint links for one subject
       await mintSurveyLinks(survey, {
@@ -120,8 +123,12 @@ describe("Survey Responses Service", () => {
     });
 
     it("should handle responses from multiple subjects", async () => {
-      const survey1 = await createSurvey(testBusinessId, "test-survey-alpha");
-      const survey2 = await createSurvey(testBusinessId, "test-survey-beta");
+      const survey1 = await createSurvey(testBusinessId, "test-survey-alpha", {
+        title: "Test Survey Alpha",
+      });
+      const survey2 = await createSurvey(testBusinessId, "test-survey-beta", {
+        title: "Test Survey Beta",
+      });
 
       // Mint links for different subjects in different surveys
       await mintSurveyLinks(survey1, {
@@ -174,10 +181,12 @@ describe("Survey Responses Service", () => {
       const survey1 = await createSurvey(
         testBusinessId,
         "test-survey-isolation-1",
+        { title: "Test Survey 1" },
       );
       const survey2 = await createSurvey(
         testBusinessId,
         "test-survey-isolation-2",
+        { title: "Test Survey 2" },
       );
 
       // Mint links for both surveys

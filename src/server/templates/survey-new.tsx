@@ -76,13 +76,15 @@ export const SurveyNew = (props: SurveyNewProps): JSX.Element => {
                   name="surveyId"
                   placeholder="e.g., customer-satisfaction-q4-2024"
                   required
-                  pattern="^[a-zA-Z0-9_-]+$"
-                  title="Survey ID can only contain letters, numbers, underscores, and hyphens"
+                  pattern="^[a-z0-9_-]+$"
+                  title="Survey ID can only contain lowercase letters, numbers, underscores, and hyphens"
+                  style={{ textTransform: "lowercase" }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Unique identifier for your survey. Only letters, numbers,
-                  underscores, and hyphens allowed. Cannot be changed later.
+                  Unique identifier for your survey. Only lowercase letters,
+                  numbers, underscores, and hyphens allowed. Cannot be changed
+                  later.
                 </p>
               </div>
 

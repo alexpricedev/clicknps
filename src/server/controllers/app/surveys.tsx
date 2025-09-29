@@ -112,7 +112,11 @@ export const surveys = {
       const title = formData.get("title")?.toString()?.trim();
       const description =
         formData.get("description")?.toString()?.trim() || undefined;
-      const surveyId = formData.get("surveyId")?.toString()?.trim();
+      const surveyId = formData
+        .get("surveyId")
+        ?.toString()
+        ?.trim()
+        ?.toLowerCase();
       const ttlDaysStr = formData.get("ttlDays")?.toString()?.trim();
 
       // Validate required fields
@@ -133,12 +137,12 @@ export const surveys = {
         );
       }
 
-      // Validate survey ID format
-      if (!/^[a-zA-Z0-9_-]+$/.test(surveyId)) {
+      // Validate survey ID format (lowercase letters, numbers, underscores, and hyphens)
+      if (!/^[a-z0-9_-]+$/.test(surveyId)) {
         return redirect(
           buildRedirectUrlWithStateForSurveyNew("/surveys/new", {
             error:
-              "Survey ID must contain only letters, numbers, underscores, and hyphens",
+              "Survey ID must contain only lowercase letters, numbers, underscores, and hyphens",
           }),
         );
       }

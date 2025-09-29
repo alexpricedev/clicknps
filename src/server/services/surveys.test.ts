@@ -81,8 +81,8 @@ const createExpiredSurveyLink = async (
   expiredDate.setDate(expiredDate.getDate() - daysAgo);
 
   await connection`
-    INSERT INTO surveys (id, business_id, survey_id)
-    VALUES (${surveyId}, ${businessId}, 'expired-survey-test')
+    INSERT INTO surveys (id, business_id, survey_id, title)
+    VALUES (${surveyId}, ${businessId}, 'expired-survey-test', 'Expired Test Survey')
   `;
 
   await connection`
@@ -121,12 +121,14 @@ describe("Surveys Service with PostgreSQL", () => {
       expect(survey.created_at).toBeInstanceOf(Date);
     });
 
-    it("should create survey with null title and description when options not provided", async () => {
+    it("should create survey with only title when minimal options provided", async () => {
       const surveyId = "test-survey-2";
 
-      const survey = await createSurvey(testBusinessId, surveyId);
+      const survey = await createSurvey(testBusinessId, surveyId, {
+        title: "Test Survey",
+      });
 
-      expect(survey.title).toBeNull();
+      expect(survey.title).toBe("Test Survey");
       expect(survey.description).toBeNull();
     });
   });
@@ -164,7 +166,9 @@ describe("Surveys Service with PostgreSQL", () => {
 
   describe("mintSurveyLinks", () => {
     it("should create 11 unique links for all NPS scores (0-10)", async () => {
-      const survey = await createSurvey(testBusinessId, "test-survey-mint-1");
+      const survey = await createSurvey(testBusinessId, "test-survey-mint-1", {
+        title: "Test Survey",
+      });
       const request: MintLinksRequest = {
         subject_id: "user-123",
         ttl_days: 30,
@@ -197,7 +201,9 @@ describe("Surveys Service with PostgreSQL", () => {
     });
 
     it("should use default TTL of 30 days when not specified", async () => {
-      const survey = await createSurvey(testBusinessId, "test-survey-mint-2");
+      const survey = await createSurvey(testBusinessId, "test-survey-mint-2", {
+        title: "Test Survey",
+      });
       const request: MintLinksRequest = {
         subject_id: "user-456",
       };
@@ -214,7 +220,9 @@ describe("Surveys Service with PostgreSQL", () => {
 
     it("should use custom TTL when specified", async () => {
       const customTtl = 7;
-      const survey = await createSurvey(testBusinessId, "test-survey-mint-3");
+      const survey = await createSurvey(testBusinessId, "test-survey-mint-3", {
+        title: "Test Survey",
+      });
       const request: MintLinksRequest = {
         subject_id: "user-789",
         ttl_days: customTtl,
@@ -230,7 +238,9 @@ describe("Surveys Service with PostgreSQL", () => {
     });
 
     it("should create unique tokens for each link", async () => {
-      const survey = await createSurvey(testBusinessId, "test-survey-mint-4");
+      const survey = await createSurvey(testBusinessId, "test-survey-mint-4", {
+        title: "Test Survey",
+      });
       const request: MintLinksRequest = {
         subject_id: "user-unique",
       };
@@ -249,6 +259,7 @@ describe("Surveys Service with PostgreSQL", () => {
       const survey = await createSurvey(
         testBusinessId,
         "test-survey-transaction",
+        { title: "Test Survey" },
       );
       const request: MintLinksRequest = {
         subject_id: "user-transaction",
@@ -277,8 +288,8 @@ describe("Surveys Service with PostgreSQL", () => {
       const surveyId = randomUUID();
 
       await connection`
-        INSERT INTO surveys (id, business_id, survey_id)
-        VALUES (${surveyId}, ${testBusinessId}, 'rollback-test-survey')
+        INSERT INTO surveys (id, business_id, survey_id, title)
+        VALUES (${surveyId}, ${testBusinessId}, 'rollback-test-survey', 'Rollback Test Survey')
       `;
 
       // Check initial state - should have 0 links
@@ -315,7 +326,9 @@ describe("Surveys Service with PostgreSQL", () => {
   describe("findSurveyLinkByToken", () => {
     it("should find valid survey link by token", async () => {
       // Create test survey and links
-      const survey = await createSurvey(testBusinessId, "test-survey-find");
+      const survey = await createSurvey(testBusinessId, "test-survey-find", {
+        title: "Test Survey",
+      });
       const request: MintLinksRequest = {
         subject_id: "user-find",
         ttl_days: 30,
@@ -363,6 +376,7 @@ describe("Surveys Service with PostgreSQL", () => {
       const survey = await createSurvey(
         testBusinessId,
         "test-survey-response-1",
+        { title: "Test Survey" },
       );
       const request: MintLinksRequest = {
         subject_id: "user-response-1",
@@ -385,6 +399,7 @@ describe("Surveys Service with PostgreSQL", () => {
       const survey = await createSurvey(
         testBusinessId,
         "test-survey-response-2",
+        { title: "Test Survey" },
       );
       const request: MintLinksRequest = {
         subject_id: "user-response-2",
@@ -413,7 +428,9 @@ describe("Surveys Service with PostgreSQL", () => {
       const surveyId1 = "test-survey-multi-response-1";
       const subjectId1 = "user-multi-response-1";
 
-      const survey1 = await createSurvey(testBusinessId, surveyId1);
+      const survey1 = await createSurvey(testBusinessId, surveyId1, {
+        title: "Test Survey 1",
+      });
       await mintSurveyLinks(survey1, {
         subject_id: subjectId1,
         ttl_days: 30,
@@ -456,7 +473,9 @@ describe("Surveys Service with PostgreSQL", () => {
       const subjectId = "user-response-lifecycle";
 
       // Setup: mint survey links once for all tests
-      const survey = await createSurvey(testBusinessId, surveyId);
+      const survey = await createSurvey(testBusinessId, surveyId, {
+        title: "Test Survey",
+      });
       const mintResult = await mintSurveyLinks(survey, {
         subject_id: subjectId,
         ttl_days: 30,
@@ -613,6 +632,7 @@ describe("Surveys Service with PostgreSQL", () => {
       const survey = await createSurvey(
         testBusinessId,
         "test-survey-null-details",
+        { title: "Test Survey" },
       );
 
       const request: MintLinksRequest = {
@@ -637,13 +657,15 @@ describe("Surveys Service with PostgreSQL", () => {
       const { survey: returnedSurvey } = result;
 
       // Verify survey properties with null values
-      expect(returnedSurvey.title).toBeNull();
+      expect(returnedSurvey.title).toBe("Test Survey");
       expect(returnedSurvey.description).toBeNull();
       expect(returnedSurvey.ttl_days).toBe(30); // default value
     });
 
     it("should return correct data types for all fields", async () => {
-      const survey = await createSurvey(testBusinessId, "test-survey-types");
+      const survey = await createSurvey(testBusinessId, "test-survey-types", {
+        title: "Test Survey",
+      });
 
       const request: MintLinksRequest = {
         subject_id: "user-types-test",
