@@ -45,6 +45,15 @@ export interface SurveyResponse {
   subject_id: string;
 }
 
+interface SurveyStatsRow {
+  survey_id: string;
+  response_count: string;
+  comment_count: string;
+  average_nps: string | null;
+  unique_subjects_count: string;
+  respondents_count: string;
+}
+
 export interface SurveyStats {
   survey_id: string;
   response_count: number;
@@ -383,8 +392,7 @@ export const getSurveyStats = async (
     ORDER BY s.created_at DESC
   `;
 
-  /* biome-ignore lint/suspicious/noExplicitAny: todo */
-  return result.map((row: any) => {
+  return result.map((row: SurveyStatsRow) => {
     const uniqueSubjectsCount = Number(row.unique_subjects_count) || 0;
     const respondentsCount = Number(row.respondents_count) || 0;
     const responseRate =
