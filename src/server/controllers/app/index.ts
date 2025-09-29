@@ -1,6 +1,5 @@
 export { about } from "./about";
 export { billing } from "./billing";
-export { contact } from "./contact";
 export { dashboard } from "./dashboard";
 export { docs } from "./docs";
 export { examples } from "./examples";

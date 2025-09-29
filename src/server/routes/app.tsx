@@ -1,7 +1,6 @@
 import {
   about,
   billing,
-  contact,
   dashboard,
   docs,
   examples,
@@ -20,7 +19,6 @@ import { createRouteHandler } from "../utils/route-handler";
 export const appRoutes = {
   "/": home.index,
   "/about": about.index,
-  "/contact": contact.index,
   "/pricing": pricing.index,
   "/docs": docs.index,
   "/dashboard": dashboard.index,

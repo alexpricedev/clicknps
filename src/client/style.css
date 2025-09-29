@@ -3,7 +3,6 @@
 /* Page styles */
 @import "./pages/home.css";
 @import "./pages/about.css";
-@import "./pages/contact.css";
 
 @plugin "daisyui" {
   /* biome-ignore lint/correctness/noUnknownProperty: daisyui plugin */
