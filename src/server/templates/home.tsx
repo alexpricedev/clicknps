@@ -9,7 +9,12 @@ export const Home = (props: {
   auth: AuthContext;
   csrfToken: string | null;
 }) => (
-  <Layout title="Home" name="home">
+  <Layout
+    title="Home"
+    name="home"
+    auth={props.auth}
+    csrfToken={props.csrfToken}
+  >
     <div className="flex justify-between items-center mb-6">
       <h1>Home Page</h1>
       <div className="flex items-center gap-4">
@@ -23,10 +28,7 @@ export const Home = (props: {
             </div>
             <form method="POST" action="/auth/logout">
               <CsrfField token={props.csrfToken} />
-              <button
-                type="submit"
-                className="bg-red-600 hover:bg-red-700 text-white text-sm px-3 py-1 rounded"
-              >
+              <button type="submit" className="btn btn-primary">
                 Logout
               </button>
             </form>

@@ -1,20 +1,29 @@
 import type React from "react";
 
+import type { AuthContext } from "../middleware/auth";
 import { Nav } from "./nav";
 
 type LayoutProps = {
   title: string;
   name: string;
   children: React.ReactNode;
+  auth?: AuthContext;
+  csrfToken?: string | null;
 };
 
 /**
  * Main application layout with header, navigation, and footer
  * Use for: Authenticated app pages, public marketing pages
  */
-export function Layout({ title, name, children }: LayoutProps) {
+export function Layout({
+  title,
+  name,
+  children,
+  auth,
+  csrfToken,
+}: LayoutProps) {
   return (
-    <html lang="en">
+    <html lang="en" data-theme="night">
       <head>
         <meta charSet="utf-8" />
         <meta
@@ -24,14 +33,11 @@ export function Layout({ title, name, children }: LayoutProps) {
         <title>{title}</title>
         <link rel="stylesheet" href="/assets/main.css" />
       </head>
-      <body data-page={name} data-component="layout">
-        <header>
-          <a href="/" className="logo">
-            <img src="/logo.png" alt="logo" />
-          </a>
-          <Nav page={name} />
+      <body data-page={name}>
+        <header className="bg-base-300 mb-8 border-b border-base-content/15 px-4 sm:px-0">
+          <Nav page={name} auth={auth} csrfToken={csrfToken} />
         </header>
-        <main>{children}</main>
+        <main className="container mx-auto px-4 sm:px-0 pb-8">{children}</main>
         <script type="module" src="/assets/main.js" />
       </body>
     </html>
@@ -49,7 +55,7 @@ type BaseLayoutProps = {
  */
 export function BaseLayout({ title, children }: BaseLayoutProps) {
   return (
-    <html lang="en">
+    <html lang="en" data-theme="dracula">
       <head>
         <meta charSet="utf-8" />
         <meta

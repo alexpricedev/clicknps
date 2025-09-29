@@ -6,7 +6,8 @@ import { contact } from "./contact";
 describe("Static Page Controllers", () => {
   describe("About Controller", () => {
     test("renders about page", async () => {
-      const response = about.index();
+      const mockRequest = new Request("http://localhost:3000/about");
+      const response = await about.index(mockRequest);
       const html = await response.text();
 
       expect(response).toBeInstanceOf(Response);
@@ -19,7 +20,8 @@ describe("Static Page Controllers", () => {
 
   describe("Contact Controller", () => {
     test("renders contact page", async () => {
-      const response = contact.index();
+      const mockRequest = new Request("http://localhost:3000/contact");
+      const response = await contact.index(mockRequest);
       const html = await response.text();
 
       expect(response).toBeInstanceOf(Response);

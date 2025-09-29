@@ -120,12 +120,32 @@ const mockGetSurveyResponses = mock((surveyId: string) => {
   return [];
 });
 
+const mockGetSurveyStats = mock(() => [
+  {
+    survey_id: "survey-1",
+    response_count: 2,
+    comment_count: 1,
+    average_nps: 8.5,
+    unique_subjects_count: 3,
+    response_rate: 67,
+  },
+  {
+    survey_id: "survey-2",
+    response_count: 0,
+    comment_count: 0,
+    average_nps: null,
+    unique_subjects_count: 0,
+    response_rate: null,
+  },
+]);
+
 mock.module("../../services/surveys", () => ({
   listSurveys: mockListSurveys,
   findSurvey: mockFindSurvey,
   createSurvey: mockCreateSurvey,
   mintSurveyLinks: mockMintSurveyLinks,
   getSurveyResponses: mockGetSurveyResponses,
+  getSurveyStats: mockGetSurveyStats,
 }));
 
 import { surveys } from "./surveys";
@@ -141,6 +161,7 @@ describe("Surveys Controller", () => {
     mockCreateSurvey.mockClear();
     mockMintSurveyLinks.mockClear();
     mockGetSurveyResponses.mockClear();
+    mockGetSurveyStats.mockClear();
   });
 
   afterAll(async () => {
@@ -155,7 +176,7 @@ describe("Surveys Controller", () => {
   };
 
   describe("GET /surveys", () => {
-    test("renders survey list for authenticated user", async () => {
+    test("renders survey list", async () => {
       const [sessionId] = await createTestSession();
       const cookieHeader = createSessionCookie(sessionId);
 
@@ -173,16 +194,8 @@ describe("Surveys Controller", () => {
       expect(html).toContain("employee-nps");
       expect(html).toContain("Create Survey");
       expect(html).toContain("Mint Links");
-    });
-
-    test("renders login prompt for unauthenticated user", async () => {
-      const request = createBunRequest("http://localhost:3000/surveys");
-      const response = await surveys.index(request);
-      const html = await response.text();
-
-      expect(html).toContain("Please");
-      expect(html).toContain("log in");
-      expect(html).toContain("to view and manage your surveys");
+      expect(html).toContain("Response Rate:");
+      expect(html).toContain("67%");
     });
 
     test("displays success state after survey creation", async () => {
@@ -212,7 +225,7 @@ describe("Surveys Controller", () => {
   });
 
   describe("GET /surveys/new", () => {
-    test("renders survey creation form for authenticated user", async () => {
+    test("renders survey creation form", async () => {
       const [sessionId] = await createTestSession();
       const cookieHeader = createSessionCookie(sessionId);
 
@@ -229,16 +242,20 @@ describe("Surveys Controller", () => {
       expect(html).toContain('name="description"');
       expect(html).toContain('name="ttlDays"');
       expect(html).toContain("Create Survey");
+      expect(html).toContain("Survey Name");
+      expect(html).toContain("Survey ID");
+      expect(html).toContain("Description");
+      expect(html).toContain("Default Link Expiry");
+      expect(html).toContain("input");
+      expect(html).toContain("textarea");
     });
 
-    test("renders login prompt for unauthenticated user", async () => {
+    test("redirects unauthenticated users", async () => {
       const request = createBunRequest("http://localhost:3000/surveys/new");
       const response = await surveys.new(request);
-      const html = await response.text();
 
-      expect(html).toContain("Please");
-      expect(html).toContain("log in");
-      expect(html).toContain("to create surveys");
+      expect(response.status).toBe(303);
+      expect(response.headers.get("location")).toBe("/login");
     });
   });
 
@@ -386,6 +403,46 @@ describe("Surveys Controller", () => {
       expect(response.headers.get("location")).toContain("error");
     });
 
+    test("converts uppercase survey ID to lowercase and creates survey", async () => {
+      const [sessionId, businessId] = await createTestSession();
+      const cookieHeader = createSessionCookie(sessionId);
+      const csrfToken = await createCsrfToken(
+        sessionId,
+        "POST",
+        "/surveys/new",
+      );
+
+      const mockFormData = new FormData();
+      mockFormData.set("title", "Test Survey");
+      mockFormData.set("surveyId", "Test-Survey-ID");
+      mockFormData.set("ttlDays", "30");
+      mockFormData.set("_csrf", csrfToken);
+
+      const request = createBunRequest("http://localhost:3000/surveys/new", {
+        method: "POST",
+        headers: {
+          Origin: "http://localhost:3000",
+          Cookie: cookieHeader,
+        },
+        body: mockFormData,
+      });
+
+      const response = await surveys.create(request);
+
+      expect(mockCreateSurvey).toHaveBeenCalledWith(
+        businessId,
+        "test-survey-id",
+        {
+          title: "Test Survey",
+          description: undefined,
+          ttl_days: 30,
+        },
+      );
+
+      expect(response.status).toBe(303);
+      expect(response.headers.get("location")).toContain("/surveys");
+    });
+
     test("prevents creating survey with existing ID", async () => {
       const [sessionId] = await createTestSession();
       const cookieHeader = createSessionCookie(sessionId);
@@ -420,7 +477,7 @@ describe("Surveys Controller", () => {
   });
 
   describe("GET /surveys/:surveyId/mint", () => {
-    test("renders mint form for authenticated user with valid survey", async () => {
+    test("renders mint form for valid survey", async () => {
       const [sessionId] = await createTestSession();
       const cookieHeader = createSessionCookie(sessionId);
 
@@ -456,20 +513,6 @@ describe("Surveys Controller", () => {
       const response = await surveys.mintForm(request);
 
       expect(response.status).toBe(404);
-    });
-
-    test("renders login prompt for unauthenticated user", async () => {
-      const request = createBunRequest(
-        "http://localhost:3000/surveys/existing-survey/mint",
-        {},
-        { surveyId: "existing-survey" },
-      );
-      const response = await surveys.mintForm(request);
-      const html = await response.text();
-
-      expect(html).toContain("Please");
-      expect(html).toContain("log in");
-      expect(html).toContain("to mint survey links");
     });
 
     test("renders success state with generated links", async () => {
@@ -686,10 +729,64 @@ describe("Surveys Controller", () => {
       expect(response.headers.get("location")).toContain("error");
       expect(mockMintSurveyLinks).not.toHaveBeenCalled();
     });
+
+    test("returns specific error when links already exist for subject", async () => {
+      const [sessionId] = await createTestSession();
+      const cookieHeader = createSessionCookie(sessionId);
+      const csrfToken = await createCsrfToken(
+        sessionId,
+        "POST",
+        "/surveys/existing-survey/mint",
+      );
+
+      // Mock mintSurveyLinks to throw the duplicate error
+      mockMintSurveyLinks.mockImplementationOnce(() => {
+        throw new Error("Links already exist for this subject");
+      });
+
+      const mockFormData = new FormData();
+      mockFormData.set("subjectId", "duplicate-customer");
+      mockFormData.set("_csrf", csrfToken);
+
+      const request = createBunRequest(
+        "http://localhost:3000/surveys/existing-survey/mint",
+        {
+          method: "POST",
+          headers: {
+            Origin: "http://localhost:3000",
+            Cookie: cookieHeader,
+          },
+          body: mockFormData,
+        },
+        { surveyId: "existing-survey" },
+      );
+
+      const response = await surveys.mint(request);
+
+      expect(mockMintSurveyLinks).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: "existing-survey-id",
+          survey_id: "existing-survey",
+        }),
+        {
+          subject_id: "duplicate-customer",
+          ttl_days: undefined,
+        },
+      );
+
+      expect(response.status).toBe(303);
+      expect(response.headers.get("location")).toContain(
+        "/surveys/existing-survey/mint",
+      );
+      expect(response.headers.get("location")).toContain("error");
+      expect(
+        decodeURIComponent(response.headers.get("location") || ""),
+      ).toContain("Links already exist for this subject");
+    });
   });
 
   describe("GET /surveys/:surveyId/responses", () => {
-    test("renders responses page for authenticated user with valid survey", async () => {
+    test("renders responses page for valid survey", async () => {
       const [sessionId] = await createTestSession();
       const cookieHeader = createSessionCookie(sessionId);
 
@@ -781,20 +878,6 @@ describe("Surveys Controller", () => {
 
       expect(response.status).toBe(404);
       expect(await response.text()).toContain("Survey not found");
-    });
-
-    test("renders login prompt for unauthenticated user", async () => {
-      const request = createBunRequest(
-        "http://localhost:3000/surveys/existing-survey/responses",
-        {},
-        { surveyId: "existing-survey" },
-      );
-      const response = await surveys.responses(request);
-      const html = await response.text();
-
-      expect(html).toContain("Please");
-      expect(html).toContain("log in");
-      expect(html).toContain("to view survey responses");
     });
   });
 });

@@ -38,7 +38,9 @@ const createTestSurveySetup = async (
   const surveyId = `test-survey-${randomUUID().slice(0, 8)}`;
   const subjectId = `test-user-${randomUUID().slice(0, 8)}`;
 
-  const survey = await createSurvey(businessId, surveyId);
+  const survey = await createSurvey(businessId, surveyId, {
+    title: "Test Survey",
+  });
   const request: MintLinksRequest = {
     subject_id: subjectId,
     ttl_days: 30,
@@ -70,8 +72,8 @@ const createExpiredToken = async (businessId: string): Promise<string> => {
   expiredDate.setDate(expiredDate.getDate() - 1);
 
   await connection`
-    INSERT INTO surveys (id, business_id, survey_id)
-    VALUES (${surveyId}, ${businessId}, 'expired-survey')
+    INSERT INTO surveys (id, business_id, survey_id, title)
+    VALUES (${surveyId}, ${businessId}, 'expired-survey', 'Expired Survey')
   `;
 
   await connection`

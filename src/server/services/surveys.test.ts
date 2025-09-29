@@ -22,12 +22,8 @@ import {
   findSurvey,
   findSurveyLinkByToken,
   findSurveyLinkWithDetails,
-  hasExistingResponse,
-  hasExistingResponseForSurvey,
   type MintLinksRequest,
   mintSurveyLinks,
-  recordResponse,
-  updateResponseComment,
 } from "./surveys";
 
 // Minimal test helper functions
@@ -52,23 +48,6 @@ const getTokenForScore = async (
   return result[0].token;
 };
 
-const getSurveyId = async (
-  businessId: string,
-  surveyId: string,
-): Promise<string> => {
-  const result = await connection`
-    SELECT id FROM surveys 
-    WHERE business_id = ${businessId} AND survey_id = ${surveyId}
-    LIMIT 1
-  `;
-
-  if (result.length === 0) {
-    throw new Error(`No survey found with ID ${surveyId}`);
-  }
-
-  return result[0].id;
-};
-
 const createExpiredSurveyLink = async (
   connection: SQL,
   businessId: string,
@@ -81,8 +60,8 @@ const createExpiredSurveyLink = async (
   expiredDate.setDate(expiredDate.getDate() - daysAgo);
 
   await connection`
-    INSERT INTO surveys (id, business_id, survey_id)
-    VALUES (${surveyId}, ${businessId}, 'expired-survey-test')
+    INSERT INTO surveys (id, business_id, survey_id, title)
+    VALUES (${surveyId}, ${businessId}, 'expired-survey-test', 'Expired Test Survey')
   `;
 
   await connection`
@@ -121,12 +100,14 @@ describe("Surveys Service with PostgreSQL", () => {
       expect(survey.created_at).toBeInstanceOf(Date);
     });
 
-    it("should create survey with null title and description when options not provided", async () => {
+    it("should create survey with only title when minimal options provided", async () => {
       const surveyId = "test-survey-2";
 
-      const survey = await createSurvey(testBusinessId, surveyId);
+      const survey = await createSurvey(testBusinessId, surveyId, {
+        title: "Test Survey",
+      });
 
-      expect(survey.title).toBeNull();
+      expect(survey.title).toBe("Test Survey");
       expect(survey.description).toBeNull();
     });
   });
@@ -164,7 +145,9 @@ describe("Surveys Service with PostgreSQL", () => {
 
   describe("mintSurveyLinks", () => {
     it("should create 11 unique links for all NPS scores (0-10)", async () => {
-      const survey = await createSurvey(testBusinessId, "test-survey-mint-1");
+      const survey = await createSurvey(testBusinessId, "test-survey-mint-1", {
+        title: "Test Survey",
+      });
       const request: MintLinksRequest = {
         subject_id: "user-123",
         ttl_days: 30,
@@ -197,7 +180,9 @@ describe("Surveys Service with PostgreSQL", () => {
     });
 
     it("should use default TTL of 30 days when not specified", async () => {
-      const survey = await createSurvey(testBusinessId, "test-survey-mint-2");
+      const survey = await createSurvey(testBusinessId, "test-survey-mint-2", {
+        title: "Test Survey",
+      });
       const request: MintLinksRequest = {
         subject_id: "user-456",
       };
@@ -214,7 +199,9 @@ describe("Surveys Service with PostgreSQL", () => {
 
     it("should use custom TTL when specified", async () => {
       const customTtl = 7;
-      const survey = await createSurvey(testBusinessId, "test-survey-mint-3");
+      const survey = await createSurvey(testBusinessId, "test-survey-mint-3", {
+        title: "Test Survey",
+      });
       const request: MintLinksRequest = {
         subject_id: "user-789",
         ttl_days: customTtl,
@@ -230,7 +217,9 @@ describe("Surveys Service with PostgreSQL", () => {
     });
 
     it("should create unique tokens for each link", async () => {
-      const survey = await createSurvey(testBusinessId, "test-survey-mint-4");
+      const survey = await createSurvey(testBusinessId, "test-survey-mint-4", {
+        title: "Test Survey",
+      });
       const request: MintLinksRequest = {
         subject_id: "user-unique",
       };
@@ -249,6 +238,7 @@ describe("Surveys Service with PostgreSQL", () => {
       const survey = await createSurvey(
         testBusinessId,
         "test-survey-transaction",
+        { title: "Test Survey" },
       );
       const request: MintLinksRequest = {
         subject_id: "user-transaction",
@@ -277,8 +267,8 @@ describe("Surveys Service with PostgreSQL", () => {
       const surveyId = randomUUID();
 
       await connection`
-        INSERT INTO surveys (id, business_id, survey_id)
-        VALUES (${surveyId}, ${testBusinessId}, 'rollback-test-survey')
+        INSERT INTO surveys (id, business_id, survey_id, title)
+        VALUES (${surveyId}, ${testBusinessId}, 'rollback-test-survey', 'Rollback Test Survey')
       `;
 
       // Check initial state - should have 0 links
@@ -310,12 +300,83 @@ describe("Surveys Service with PostgreSQL", () => {
       `;
       expect(Number(finalCount[0].count)).toBe(0);
     });
+
+    it("should prevent minting duplicate links for same subject", async () => {
+      const survey = await createSurvey(
+        testBusinessId,
+        "duplicate-test-survey",
+        {
+          title: "Duplicate Test Survey",
+        },
+      );
+      const request: MintLinksRequest = {
+        subject_id: "duplicate-test-user",
+        ttl_days: 30,
+      };
+
+      // First minting should succeed
+      const firstResult = await mintSurveyLinks(survey, request);
+      expect(Object.keys(firstResult.links)).toHaveLength(11);
+
+      // Second minting for same subject should throw error
+      let errorThrown = false;
+      let errorMessage = "";
+      try {
+        await mintSurveyLinks(survey, request);
+      } catch (error) {
+        errorThrown = true;
+        errorMessage = error instanceof Error ? error.message : String(error);
+      }
+
+      expect(errorThrown).toBe(true);
+      expect(errorMessage).toBe("Links already exist for this subject");
+
+      // Verify only one set of links exists
+      const linkCount = await connection`
+        SELECT COUNT(*) as count FROM survey_links 
+        WHERE survey_id = ${survey.id} AND subject_id = 'duplicate-test-user'
+      `;
+      expect(Number(linkCount[0].count)).toBe(11);
+    });
+
+    it("should allow minting links for different subjects in same survey", async () => {
+      const survey = await createSurvey(
+        testBusinessId,
+        "multi-subject-survey",
+        {
+          title: "Multi Subject Survey",
+        },
+      );
+
+      // Mint links for first subject
+      const result1 = await mintSurveyLinks(survey, {
+        subject_id: "user-1",
+        ttl_days: 30,
+      });
+      expect(Object.keys(result1.links)).toHaveLength(11);
+
+      // Mint links for second subject should succeed
+      const result2 = await mintSurveyLinks(survey, {
+        subject_id: "user-2",
+        ttl_days: 30,
+      });
+      expect(Object.keys(result2.links)).toHaveLength(11);
+
+      // Verify both sets of links exist
+      const linkCount = await connection`
+        SELECT COUNT(*) as count FROM survey_links 
+        WHERE survey_id = ${survey.id}
+      `;
+      expect(Number(linkCount[0].count)).toBe(22); // 11 links x 2 subjects
+    });
   });
 
   describe("findSurveyLinkByToken", () => {
     it("should find valid survey link by token", async () => {
       // Create test survey and links
-      const survey = await createSurvey(testBusinessId, "test-survey-find");
+      const survey = await createSurvey(testBusinessId, "test-survey-find", {
+        title: "Test Survey",
+      });
       const request: MintLinksRequest = {
         subject_id: "user-find",
         ttl_days: 30,
@@ -355,187 +416,6 @@ describe("Surveys Service with PostgreSQL", () => {
 
       const found = await findSurveyLinkByToken(token);
       expect(found).toBeNull();
-    });
-  });
-
-  describe("hasExistingResponse", () => {
-    it("should return false when no response exists", async () => {
-      const survey = await createSurvey(
-        testBusinessId,
-        "test-survey-response-1",
-      );
-      const request: MintLinksRequest = {
-        subject_id: "user-response-1",
-      };
-
-      await mintSurveyLinks(survey, request);
-
-      const links = await connection`
-        SELECT * FROM survey_links 
-        WHERE survey_id = ${survey.id}
-        LIMIT 1
-      `;
-      const testSurveyLink = links[0];
-
-      const hasResponse = await hasExistingResponse(testSurveyLink.id);
-      expect(hasResponse).toBe(false);
-    });
-
-    it("should return true when response exists", async () => {
-      const survey = await createSurvey(
-        testBusinessId,
-        "test-survey-response-2",
-      );
-      const request: MintLinksRequest = {
-        subject_id: "user-response-2",
-      };
-
-      await mintSurveyLinks(survey, request);
-
-      const links = await connection`
-        SELECT * FROM survey_links 
-        WHERE survey_id = ${survey.id}
-        LIMIT 1
-      `;
-      const testSurveyLink = links[0];
-
-      // Create a response
-      await recordResponse(testSurveyLink.id, "Test comment");
-
-      const hasResponse = await hasExistingResponse(testSurveyLink.id);
-      expect(hasResponse).toBe(true);
-    });
-  });
-
-  describe("hasExistingResponseForSurvey", () => {
-    it("should work correctly across all scenarios", async () => {
-      // Test 1: Return false when no response exists
-      const surveyId1 = "test-survey-multi-response-1";
-      const subjectId1 = "user-multi-response-1";
-
-      const survey1 = await createSurvey(testBusinessId, surveyId1);
-      await mintSurveyLinks(survey1, {
-        subject_id: subjectId1,
-        ttl_days: 30,
-      });
-
-      const dbSurveyId1 = await getSurveyId(testBusinessId, surveyId1);
-      let hasResponse = await hasExistingResponseForSurvey(
-        dbSurveyId1,
-        subjectId1,
-      );
-      expect(hasResponse).toBe(false);
-
-      // Test 2: Return true when response exists for any score link
-      const token = await getTokenForScore(testBusinessId, surveyId1, 5);
-      const surveyLink = await findSurveyLinkByToken(token);
-      if (!surveyLink) throw new Error("Survey link not found");
-
-      await recordResponse(surveyLink.id, "Score 5 response");
-      hasResponse = await hasExistingResponseForSurvey(dbSurveyId1, subjectId1);
-      expect(hasResponse).toBe(true);
-
-      // Test 3: Verify individual link checks work as expected
-      const token3 = await getTokenForScore(testBusinessId, surveyId1, 3);
-      const token8 = await getTokenForScore(testBusinessId, surveyId1, 8);
-      const surveyLink3 = await findSurveyLinkByToken(token3);
-      const surveyLink8 = await findSurveyLinkByToken(token8);
-
-      if (!surveyLink3 || !surveyLink8)
-        throw new Error("Survey links not found");
-
-      expect(await hasExistingResponse(surveyLink.id)).toBe(true); // The one with response
-      expect(await hasExistingResponse(surveyLink3.id)).toBe(false);
-      expect(await hasExistingResponse(surveyLink8.id)).toBe(false);
-    });
-  });
-
-  describe("Response and Comment Management", () => {
-    it("should handle complete response and comment lifecycle", async () => {
-      const surveyId = "test-survey-response-lifecycle";
-      const subjectId = "user-response-lifecycle";
-
-      // Setup: mint survey links once for all tests
-      const survey = await createSurvey(testBusinessId, surveyId);
-      const mintResult = await mintSurveyLinks(survey, {
-        subject_id: subjectId,
-        ttl_days: 30,
-      });
-
-      expect(Object.keys(mintResult.links)).toHaveLength(11);
-
-      // Test 1: Record response with comment
-      const token1 = await getTokenForScore(testBusinessId, surveyId, 3);
-      const surveyLink1 = await findSurveyLinkByToken(token1);
-      if (!surveyLink1) throw new Error("Survey link not found");
-
-      const comment = "Great service!";
-      const responseId1 = await recordResponse(surveyLink1.id, comment);
-      expect(responseId1).toBeDefined();
-
-      // Verify response was saved with comment
-      const responses1 = await connection`
-        SELECT * FROM responses WHERE id = ${responseId1}
-      `;
-      expect(responses1).toHaveLength(1);
-      expect(responses1[0].survey_link_id).toBe(surveyLink1.id);
-      expect(responses1[0].comment).toBe(comment);
-
-      // Test 2: Record response without comment
-      const token2 = await getTokenForScore(testBusinessId, surveyId, 7);
-      const surveyLink2 = await findSurveyLinkByToken(token2);
-      if (!surveyLink2) throw new Error("Survey link not found");
-
-      const responseId2 = await recordResponse(surveyLink2.id);
-      expect(responseId2).toBeDefined();
-
-      // Verify response was saved without comment
-      const responses2 = await connection`
-        SELECT * FROM responses WHERE id = ${responseId2}
-      `;
-      expect(responses2).toHaveLength(1);
-      expect(responses2[0].survey_link_id).toBe(surveyLink2.id);
-      expect(responses2[0].comment).toBeNull();
-
-      // Test 3: Update response comment
-      const token3 = await getTokenForScore(testBusinessId, surveyId, 6);
-      const surveyLink3 = await findSurveyLinkByToken(token3);
-      if (!surveyLink3) throw new Error("Survey link not found");
-
-      // Create initial response
-      const testResponseId = await recordResponse(
-        surveyLink3.id,
-        "Initial comment",
-      );
-
-      const newComment = "Updated comment";
-      const updated = await updateResponseComment(surveyLink3.id, newComment);
-      expect(updated).toBe(true);
-
-      // Verify comment was updated
-      const responses3 = await connection`
-        SELECT * FROM responses WHERE id = ${testResponseId}
-      `;
-      expect(responses3[0].comment).toBe(newComment);
-
-      // Test 4: Update non-existent response
-      const nonExistentLinkId = randomUUID();
-      const updatedNonExistent = await updateResponseComment(
-        nonExistentLinkId,
-        "Some comment",
-      );
-      expect(updatedNonExistent).toBe(false);
-
-      // Test 5: Check response existence
-      expect(await hasExistingResponse(surveyLink1.id)).toBe(true);
-      expect(await hasExistingResponse(surveyLink2.id)).toBe(true);
-      expect(await hasExistingResponse(surveyLink3.id)).toBe(true);
-
-      // Test a link without response
-      const token8 = await getTokenForScore(testBusinessId, surveyId, 8);
-      const surveyLink8 = await findSurveyLinkByToken(token8);
-      if (!surveyLink8) throw new Error("Survey link not found");
-      expect(await hasExistingResponse(surveyLink8.id)).toBe(false);
     });
   });
 
@@ -613,6 +493,7 @@ describe("Surveys Service with PostgreSQL", () => {
       const survey = await createSurvey(
         testBusinessId,
         "test-survey-null-details",
+        { title: "Test Survey" },
       );
 
       const request: MintLinksRequest = {
@@ -637,13 +518,15 @@ describe("Surveys Service with PostgreSQL", () => {
       const { survey: returnedSurvey } = result;
 
       // Verify survey properties with null values
-      expect(returnedSurvey.title).toBeNull();
+      expect(returnedSurvey.title).toBe("Test Survey");
       expect(returnedSurvey.description).toBeNull();
       expect(returnedSurvey.ttl_days).toBe(30); // default value
     });
 
     it("should return correct data types for all fields", async () => {
-      const survey = await createSurvey(testBusinessId, "test-survey-types");
+      const survey = await createSurvey(testBusinessId, "test-survey-types", {
+        title: "Test Survey",
+      });
 
       const request: MintLinksRequest = {
         subject_id: "user-types-test",

@@ -1,53 +1,49 @@
+import { AlertTriangle } from "lucide-react";
 import type { JSX } from "react";
 import { CsrfField } from "../components/csrf-field";
 import { Layout } from "../components/layouts";
+import { PageHeader } from "../components/page-header";
+import type { AuthContext } from "../middleware/auth";
 
 export interface SurveyNewState {
   error?: string;
 }
 
-type PublicSurveyNewProps = {
-  isAuthenticated: false;
-};
-
-type AuthSurveyNewProps = {
-  isAuthenticated: true;
+export type SurveyNewProps = {
+  auth: AuthContext;
   state?: SurveyNewState;
   createCsrfToken: string | null;
+  csrfToken: string | null;
 };
-
-export type SurveyNewProps = PublicSurveyNewProps | AuthSurveyNewProps;
 
 export const SurveyNew = (props: SurveyNewProps): JSX.Element => {
   return (
-    <Layout title="Create Survey" name="survey-new">
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-2">Create New Survey</h1>
-          <p className="text-gray-600">
-            Create a survey to generate NPS links. You can mint links for
-            different subjects after creating the survey.
-          </p>
-        </div>
+    <Layout
+      title="Create Survey"
+      name="survey-new"
+      auth={props.auth}
+      csrfToken={props.csrfToken}
+    >
+      <div>
+        <PageHeader
+          title="Create New Survey"
+          description="Create a survey to generate NPS links. You can mint links for different subjects after creating the survey."
+        />
 
-        <div className="bg-white border border-gray-200 rounded-lg p-6 max-w-2xl">
-          {props.isAuthenticated ? (
+        <div className="card bg-neutral text-neutral-content max-w-2xl">
+          <div className="card-body">
             <form method="POST" action="/surveys/new" className="space-y-6">
               <CsrfField token={props.createCsrfToken} />
 
               {props.state?.error && (
-                <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded">
-                  <p>{props.state.error}</p>
+                <div className="alert alert-error">
+                  <AlertTriangle className="w-6 h-6" />
+                  <span>{props.state.error}</span>
                 </div>
               )}
 
-              <div>
-                <label
-                  htmlFor="title"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  Survey Name *
-                </label>
+              <fieldset className="fieldset">
+                <legend className="fieldset-legend">Survey Name *</legend>
                 <input
                   type="text"
                   id="title"
@@ -56,63 +52,52 @@ export const SurveyNew = (props: SurveyNewProps): JSX.Element => {
                   required
                   minLength={2}
                   maxLength={100}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="input w-full"
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="label">
                   A descriptive name for your survey (2-100 characters).
                 </p>
-              </div>
+              </fieldset>
 
-              <div>
-                <label
-                  htmlFor="surveyId"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  Survey ID *
-                </label>
+              <fieldset className="fieldset">
+                <legend className="fieldset-legend">Survey ID *</legend>
                 <input
                   type="text"
                   id="surveyId"
                   name="surveyId"
                   placeholder="e.g., customer-satisfaction-q4-2024"
                   required
-                  pattern="^[a-zA-Z0-9_-]+$"
-                  title="Survey ID can only contain letters, numbers, underscores, and hyphens"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  pattern="^[a-z0-9_-]+$"
+                  title="Survey ID can only contain lowercase letters, numbers, underscores, and hyphens"
+                  style={{ textTransform: "lowercase" }}
+                  className="input font-mono w-full"
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  Unique identifier for your survey. Only letters, numbers,
-                  underscores, and hyphens allowed. Cannot be changed later.
+                <p className="label">
+                  Unique identifier for your survey. Only lowercase letters,
+                  numbers, underscores, and hyphens allowed. Cannot be changed
+                  later.
                 </p>
-              </div>
+              </fieldset>
 
-              <div>
-                <label
-                  htmlFor="description"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  Description
-                </label>
+              <fieldset className="fieldset">
+                <legend className="fieldset-legend">Description</legend>
                 <textarea
                   id="description"
                   name="description"
                   placeholder="Optional description of your survey purpose and context"
                   rows={3}
                   maxLength={500}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="textarea w-full"
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="label">
                   Optional description (up to 500 characters).
                 </p>
-              </div>
+              </fieldset>
 
-              <div>
-                <label
-                  htmlFor="ttlDays"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
+              <fieldset className="fieldset">
+                <legend className="fieldset-legend">
                   Default Link Expiry (Days) *
-                </label>
+                </legend>
                 <input
                   type="number"
                   id="ttlDays"
@@ -122,40 +107,24 @@ export const SurveyNew = (props: SurveyNewProps): JSX.Element => {
                   required
                   min={1}
                   max={365}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="input"
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="label">
                   Default expiry time for links minted for this survey. Can be
                   overridden when minting links (1-365 days).
                 </p>
-              </div>
+              </fieldset>
 
-              <div className="flex gap-4">
-                <button
-                  type="submit"
-                  className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                >
+              <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                <button type="submit" className="btn btn-primary">
                   Create Survey
                 </button>
-                <a
-                  href="/surveys"
-                  className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                >
+                <a href="/surveys" className="btn btn-ghost">
                   Cancel
                 </a>
               </div>
             </form>
-          ) : (
-            <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded">
-              <p>
-                Please{" "}
-                <a href="/login" className="underline">
-                  log in
-                </a>{" "}
-                to create surveys.
-              </p>
-            </div>
-          )}
+          </div>
         </div>
       </div>
     </Layout>

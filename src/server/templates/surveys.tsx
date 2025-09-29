@@ -1,6 +1,16 @@
+import {
+  CheckCircle,
+  MessageSquare,
+  Percent,
+  Plus,
+  TrendingUp,
+  Users,
+} from "lucide-react";
 import type { JSX } from "react";
 import { Layout } from "../components/layouts";
-import type { Survey } from "../services/surveys";
+import { PageHeader } from "../components/page-header";
+import type { AuthContext } from "../middleware/auth";
+import type { Survey, SurveyStats } from "../services/surveys";
 
 export interface SurveysState {
   created?: {
@@ -9,128 +19,179 @@ export interface SurveysState {
   };
 }
 
-type PublicSurveysProps = {
-  isAuthenticated: false;
-};
-
-type AuthSurveysProps = {
-  isAuthenticated: true;
+type SurveysProps = {
   surveys: Survey[];
+  stats: SurveyStats[];
   state?: SurveysState;
+  auth: AuthContext;
+  csrfToken?: string | null;
 };
-
-export type SurveysProps = PublicSurveysProps | AuthSurveysProps;
 
 export const Surveys = (props: SurveysProps): JSX.Element => {
   return (
-    <Layout title="Surveys" name="surveys">
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">Your Surveys</h1>
-            <p className="text-gray-600">
-              Manage your NPS surveys and generate links for different subjects.
-            </p>
-          </div>
-          {props.isAuthenticated && (
-            <a
-              href="/surveys/new"
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-            >
-              Create Survey
-            </a>
-          )}
-        </div>
+    <Layout
+      title="Surveys"
+      name="surveys"
+      auth={props.auth}
+      csrfToken={props.csrfToken}
+    >
+      <div>
+        <PageHeader
+          title="Your Surveys"
+          description="Manage your NPS surveys, view responses, and manually generate links for different subjects."
+        >
+          <a href="/surveys/new" className="btn btn-primary">
+            <Plus size={24} />
+            Create Survey
+          </a>
+        </PageHeader>
 
-        {props.isAuthenticated && props.state?.created && (
-          <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded mb-6">
-            <p className="font-semibold">
-              ✅ Survey "{props.state.created.title}" (ID:{" "}
-              {props.state.created.surveyId}) created successfully!
-            </p>
-            <p className="text-sm mt-1">
-              You can now mint links for different subjects using this survey.
-            </p>
+        {props.state?.created && (
+          <div className="alert alert-success mb-6">
+            <CheckCircle className="w-6 h-6" />
+            <div>
+              <div className="font-semibold">
+                Survey "{props.state.created.title}" (ID:{" "}
+                {props.state.created.surveyId}) created successfully!
+              </div>
+              <div className="text-sm">
+                You can now mint links for different subjects using this survey.
+              </div>
+            </div>
           </div>
         )}
 
-        {props.isAuthenticated ? (
-          props.surveys.length > 0 ? (
-            <div className="grid gap-4">
-              {props.surveys.map((survey) => (
-                <div
-                  key={survey.id}
-                  className="bg-white border border-gray-200 rounded-lg p-6"
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                        {survey.title || "Untitled Survey"}
-                      </h3>
-                      <p className="text-sm text-gray-600 mb-2">
-                        ID:{" "}
-                        <code className="bg-gray-100 px-1 rounded">
-                          {survey.survey_id}
-                        </code>
-                      </p>
-                      {survey.description && (
-                        <p className="text-sm text-gray-700 mb-3">
-                          {survey.description}
-                        </p>
-                      )}
-                      <div className="flex gap-4 text-xs text-gray-500">
-                        <span>Default TTL: {survey.ttl_days} days</span>
-                        <span>
-                          Created:{" "}
-                          {new Date(survey.created_at).toLocaleDateString()}
-                        </span>
+        {props.surveys.length > 0 ? (
+          <ul className="list bg-neutral rounded-box shadow-md">
+            {props.surveys.map((survey) => {
+              const surveyStats = props.stats.find(
+                (s) => s.survey_id === survey.id,
+              );
+              const responseCount = surveyStats?.response_count || 0;
+              const commentCount = surveyStats?.comment_count || 0;
+              const avgNPS = surveyStats?.average_nps;
+              const responseRate = surveyStats?.response_rate ?? null;
+
+              // NPS color coding: 0-6 (red), 7-8 (yellow), 9-10 (green)
+              const getNPSColor = (score: number | null) => {
+                if (score === null) return "text-base-content/60";
+                if (score <= 6) return "text-error";
+                if (score <= 8) return "text-warning";
+                return "text-success";
+              };
+
+              // Response rate color coding: <30% (red), 30-70% (yellow), >70% (green)
+              const getResponseRateColor = (rate: number | null) => {
+                if (rate === null) return "text-base-content/60";
+                if (rate < 30) return "text-error";
+                if (rate < 70) return "text-warning";
+                return "text-success";
+              };
+
+              return (
+                <li key={survey.id} className="list-row">
+                  {/* Main content area */}
+                  <div className="list-col-grow min-w-0">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="text-lg font-semibold text-base-content truncate">
+                          <a
+                            href={`/surveys/${survey.survey_id}/responses`}
+                            className="link link-hover"
+                          >
+                            {survey.title}
+                          </a>
+                          <span className="font-normal text-xs text-accent font-mono ml-2 inline-block">
+                            {survey.survey_id}
+                          </span>
+                        </div>
+                        {survey.description && (
+                          <div className="text-sm opacity-80 mt-1 line-clamp-2">
+                            {survey.description}
+                          </div>
+                        )}
+
+                        {/* Stats row */}
+                        <div className="flex flex-wrap gap-4 mt-2 text-xs">
+                          <div className="flex items-center gap-1">
+                            <Users className="w-3 h-3" />
+                            <span>{responseCount} responses</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <MessageSquare className="w-3 h-3" />
+                            <span>{commentCount} comments</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <TrendingUp className="w-3 h-3" />
+                            <span className={getNPSColor(avgNPS ?? null)}>
+                              NPS:{" "}
+                              {avgNPS !== null && avgNPS !== undefined
+                                ? avgNPS.toFixed(1)
+                                : "—"}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Percent className="w-3 h-3" />
+                            <span
+                              className={getResponseRateColor(responseRate)}
+                            >
+                              Response Rate:{" "}
+                              {responseRate !== null ? `${responseRate}%` : "—"}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Metadata row */}
+                        <div className="flex flex-wrap gap-4 mt-2 text-xs opacity-60">
+                          <span>TTL: {survey.ttl_days} days</span>
+                          <span>
+                            Created:{" "}
+                            {new Date(survey.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Action buttons - responsive layout */}
+                      <div className="join join-vertical lg:join-horizontal">
+                        <a
+                          href={`/surveys/${survey.survey_id}/mint`}
+                          className="btn btn-sm join-item"
+                        >
+                          Mint Links Manually
+                        </a>
+                        <a
+                          href={`/surveys/${survey.survey_id}/responses`}
+                          className="btn btn-sm btn-secondary join-item"
+                        >
+                          View Responses
+                        </a>
                       </div>
                     </div>
-                    <div className="ml-4 flex gap-2">
-                      <a
-                        href={`/surveys/${survey.survey_id}/responses`}
-                        className="px-4 py-2 bg-gray-600 text-white text-sm rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
-                      >
-                        View Responses
-                      </a>
-                      <a
-                        href={`/surveys/${survey.survey_id}/mint`}
-                        className="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                      >
-                        Mint Links
-                      </a>
-                    </div>
                   </div>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <div className="text-center py-12 px-4">
+            <div className="hero bg-base-200 rounded-box p-8 max-w-md mx-auto">
+              <div className="hero-content text-center">
+                <div className="max-w-md">
+                  <div className="mb-4">
+                    <TrendingUp className="w-16 h-16 mx-auto opacity-50" />
+                  </div>
+                  <h3 className="text-xl font-bold mb-2">No surveys yet</h3>
+                  <p className="mb-6 opacity-80">
+                    Create your first survey to start generating NPS links and
+                    tracking customer satisfaction.
+                  </p>
+                  <a href="/surveys/new" className="btn btn-primary">
+                    <Plus className="w-4 h-4" />
+                    Create Your First Survey
+                  </a>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 max-w-md mx-auto">
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  No surveys yet
-                </h3>
-                <p className="text-gray-600 mb-4">
-                  Create your first survey to start generating NPS links.
-                </p>
-                <a
-                  href="/surveys/new"
-                  className="inline-flex px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                >
-                  Create Your First Survey
-                </a>
               </div>
             </div>
-          )
-        ) : (
-          <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded">
-            <p>
-              Please{" "}
-              <a href="/login" className="underline">
-                log in
-              </a>{" "}
-              to view and manage your surveys.
-            </p>
           </div>
         )}
       </div>

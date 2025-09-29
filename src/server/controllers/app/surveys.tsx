@@ -7,6 +7,7 @@ import {
   createSurvey,
   findSurvey,
   getSurveyResponses,
+  getSurveyStats,
   listSurveys,
   mintSurveyLinks,
 } from "../../services/surveys";
@@ -35,45 +36,70 @@ const {
 
 export const surveys = {
   async index(req: BunRequest): Promise<Response> {
+    const authRequired = await requireAuth(req);
+    if (authRequired) return authRequired;
+
     const auth = await getAuthContext(req);
 
-    if (!auth.isAuthenticated || !auth.business) {
-      return render(<Surveys isAuthenticated={false} />);
+    let csrfToken: string | null = null;
+    if (auth.isAuthenticated) {
+      const cookieHeader = req.headers.get("cookie");
+      const sessionId = getSessionIdFromCookies(cookieHeader);
+      if (sessionId) {
+        csrfToken = await createCsrfToken(sessionId, "POST", "/auth/logout");
+      }
+    }
+
+    if (!auth.business) {
+      return new Response("Business not found", { status: 404 });
     }
 
     const url = new URL(req.url);
     const state = parseSurveysState(url);
-    const surveysList = await listSurveys(auth.business.id);
+    const [surveysList, surveysStats] = await Promise.all([
+      listSurveys(auth.business.id),
+      getSurveyStats(auth.business.id),
+    ]);
 
     return render(
-      <Surveys isAuthenticated={true} surveys={surveysList} state={state} />,
+      <Surveys
+        surveys={surveysList}
+        stats={surveysStats}
+        state={state}
+        auth={auth}
+        csrfToken={csrfToken}
+      />,
     );
   },
 
   async new(req: BunRequest): Promise<Response> {
-    const [auth, sessionId] = await Promise.all([
-      getAuthContext(req),
-      getSessionIdFromCookies(req.headers.get("cookie")),
-    ]);
+    const authRequired = await requireAuth(req);
+    if (authRequired) return authRequired;
 
-    if (!auth.isAuthenticated || !sessionId) {
-      return render(<SurveyNew isAuthenticated={false} />);
-    }
-
+    const auth = await getAuthContext(req);
     const url = new URL(req.url);
     const state = parseNewState(url);
 
-    const createCsrfTokenValue = await createCsrfToken(
-      sessionId,
-      "POST",
-      "/surveys/new",
-    );
+    let createCsrfTokenValue: string | null = null;
+    let csrfToken: string | null = null;
+
+    const cookieHeader = req.headers.get("cookie");
+    const sessionId = getSessionIdFromCookies(cookieHeader);
+    if (sessionId) {
+      const [createToken, logoutToken] = await Promise.all([
+        createCsrfToken(sessionId, "POST", "/surveys/new"),
+        createCsrfToken(sessionId, "POST", "/auth/logout"),
+      ]);
+      createCsrfTokenValue = createToken;
+      csrfToken = logoutToken;
+    }
 
     return render(
       <SurveyNew
-        isAuthenticated={true}
+        auth={auth}
         state={state}
         createCsrfToken={createCsrfTokenValue}
+        csrfToken={csrfToken}
       />,
     );
   },
@@ -90,7 +116,11 @@ export const surveys = {
       const title = formData.get("title")?.toString()?.trim();
       const description =
         formData.get("description")?.toString()?.trim() || undefined;
-      const surveyId = formData.get("surveyId")?.toString()?.trim();
+      const surveyId = formData
+        .get("surveyId")
+        ?.toString()
+        ?.trim()
+        ?.toLowerCase();
       const ttlDaysStr = formData.get("ttlDays")?.toString()?.trim();
 
       // Validate required fields
@@ -111,12 +141,12 @@ export const surveys = {
         );
       }
 
-      // Validate survey ID format
-      if (!/^[a-zA-Z0-9_-]+$/.test(surveyId)) {
+      // Validate survey ID format (lowercase letters, numbers, underscores, and hyphens)
+      if (!/^[a-z0-9_-]+$/.test(surveyId)) {
         return redirect(
           buildRedirectUrlWithStateForSurveyNew("/surveys/new", {
             error:
-              "Survey ID must contain only letters, numbers, underscores, and hyphens",
+              "Survey ID must contain only lowercase letters, numbers, underscores, and hyphens",
           }),
         );
       }
@@ -308,7 +338,19 @@ export const surveys = {
           successState,
         ),
       );
-    } catch (_error) {
+    } catch (error) {
+      // Check for our custom error message
+      if (
+        error instanceof Error &&
+        error.message === "Links already exist for this subject"
+      ) {
+        return redirect(
+          buildRedirectUrlWithStateForSurveyMint(`/surveys/${surveyId}/mint`, {
+            error: "Links already exist for this subject",
+          }),
+        );
+      }
+      // Generic error for everything else
       return redirect(
         buildRedirectUrlWithStateForSurveyMint(`/surveys/${surveyId}/mint`, {
           error: "Internal server error",

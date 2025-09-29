@@ -1,10 +1,10 @@
 import { getAuthContext } from "../../middleware/auth";
 import { getSessionIdFromCookies } from "../../services/auth";
 import { createCsrfToken } from "../../services/csrf";
-import { About } from "../../templates/about";
+import { Docs } from "../../templates/docs";
 import { render } from "../../utils/response";
 
-export const about = {
+export const docs = {
   async index(req: Request): Promise<Response> {
     const auth = await getAuthContext(req);
 
@@ -17,6 +17,6 @@ export const about = {
       }
     }
 
-    return render(<About auth={auth} csrfToken={csrfToken} />);
+    return render(<Docs auth={auth} csrfToken={csrfToken} />);
   },
 };
