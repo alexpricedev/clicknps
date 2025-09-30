@@ -2,6 +2,7 @@ import type { BunRequest } from "bun";
 import { renderToString } from "react-dom/server";
 import {
   findSurveyLinkWithDetails,
+  getExistingResponse,
   hasExistingResponse,
   hasExistingResponseForSurvey,
   recordResponse,
@@ -9,6 +10,7 @@ import {
 } from "../../services/surveys";
 import {
   queueWebhookDelivery,
+  refreshPendingWebhookTimer,
   updatePendingWebhookComment,
 } from "../../services/webhooks";
 import { ThankYouPage } from "../../templates/thank-you";
@@ -57,11 +59,31 @@ export const responsesController = {
       );
 
       if (alreadyResponded) {
+        // Get the existing response to check timestamp
+        const existingResponse = await getExistingResponse(
+          surveyLink.survey_id,
+          surveyLink.subject_id,
+        );
+
+        // Calculate seconds since response
+        const secondsSinceResponse = existingResponse
+          ? Math.floor(
+              (Date.now() - existingResponse.responded_at.getTime()) / 1000,
+            )
+          : 999;
+
+        // Within 180s window: allow adding comment
+        const withinCommentWindow = secondsSinceResponse < 180;
+
+        // Use the original response score, not the newly clicked link's score
+        const originalScore = existingResponse?.score ?? surveyLink.score;
+
         // Still show thank you page but indicate already responded
         const html = renderToString(
           <ThankYouPage
-            score={surveyLink.score}
+            score={originalScore}
             alreadyResponded={true}
+            withinCommentWindow={withinCommentWindow}
             token={token}
             state={state}
           />,
@@ -157,6 +179,28 @@ export const responsesController = {
         surveyLink.subject_id,
         comment.trim(),
       );
+
+      // Check if we're within the comment window and need to refresh webhook timer
+      const existingResponse = await getExistingResponse(
+        surveyLink.survey_id,
+        surveyLink.subject_id,
+      );
+
+      if (existingResponse) {
+        const secondsSinceResponse = Math.floor(
+          (Date.now() - existingResponse.responded_at.getTime()) / 1000,
+        );
+
+        if (secondsSinceResponse < 180) {
+          // Refresh the webhook timer to give another 180s from now
+          await refreshPendingWebhookTimer(
+            survey.business_id,
+            survey.survey_id,
+            surveyLink.subject_id,
+            180,
+          );
+        }
+      }
 
       // Redirect back to thank you page with state
       const successState: ResponseState = { commented: true };

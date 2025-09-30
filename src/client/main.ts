@@ -1,9 +1,11 @@
 // Page scripts
+import { init as initThankYou } from "@client/pages/thank-you";
 import { init as initWebhooks } from "@client/pages/webhooks";
 
 const page = document.body.dataset.page;
 
 const pages: Record<string, () => void> = {
+  "thank-you": initThankYou,
   webhooks: initWebhooks,
 };
 

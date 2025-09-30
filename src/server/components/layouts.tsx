@@ -46,16 +46,23 @@ export function Layout({
 
 type BaseLayoutProps = {
   title: string;
+  name: string;
   children: React.ReactNode;
+  theme?: string;
 };
 
 /**
  * Minimal layout without navigation or header
  * Use for: Authentication pages, error pages, standalone forms
  */
-export function BaseLayout({ title, children }: BaseLayoutProps) {
+export function BaseLayout({
+  title,
+  name,
+  children,
+  theme = "dracula",
+}: BaseLayoutProps) {
   return (
-    <html lang="en" data-theme="dracula">
+    <html lang="en" data-theme={theme}>
       <head>
         <meta charSet="utf-8" />
         <meta
@@ -65,7 +72,7 @@ export function BaseLayout({ title, children }: BaseLayoutProps) {
         <title>{title}</title>
         <link rel="stylesheet" href="/assets/main.css" />
       </head>
-      <body>
+      <body data-page={name}>
         {children}
         <script type="module" src="/assets/main.js" />
       </body>

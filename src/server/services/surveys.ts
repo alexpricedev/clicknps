@@ -305,7 +305,7 @@ export const hasExistingResponseForSurvey = async (
   subjectId: string,
 ): Promise<boolean> => {
   const result = await db`
-    SELECT r.id 
+    SELECT r.id
     FROM responses r
     JOIN survey_links sl ON r.survey_link_id = sl.id
     WHERE sl.survey_id = ${surveyId} AND sl.subject_id = ${subjectId}
@@ -313,6 +313,33 @@ export const hasExistingResponseForSurvey = async (
   `;
 
   return result.length > 0;
+};
+
+/**
+ * Get existing response for a survey and subject (returns full response with timestamp)
+ */
+export const getExistingResponse = async (
+  surveyId: string,
+  subjectId: string,
+): Promise<SurveyResponse | null> => {
+  const result = await db`
+    SELECT
+      r.id,
+      r.responded_at,
+      r.comment,
+      sl.score,
+      sl.subject_id
+    FROM responses r
+    JOIN survey_links sl ON r.survey_link_id = sl.id
+    WHERE sl.survey_id = ${surveyId} AND sl.subject_id = ${subjectId}
+    LIMIT 1
+  `;
+
+  if (result.length === 0) {
+    return null;
+  }
+
+  return result[0] as SurveyResponse;
 };
 
 /**

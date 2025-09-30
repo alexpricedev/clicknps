@@ -118,7 +118,7 @@ describe("Responses Controller", () => {
       const html = await response.text();
       expect(html).toContain("Thank you for your feedback!");
       expect(html).toContain("7"); // Should show the score
-      expect(html).not.toContain("already responded"); // First response
+      expect(html).not.toContain("already recorded"); // First response
 
       // Verify response was recorded in database
       const responses = await connection`
@@ -130,7 +130,7 @@ describe("Responses Controller", () => {
       expect(responses[0].comment).toBeNull();
     });
 
-    it("should handle already responded scenario", async () => {
+    it("should handle already responded scenario within 180s (show comment form)", async () => {
       const setup = await createTestSurveySetup(testBusinessId);
       const token = setup.tokens[8]; // Score of 8
 
@@ -143,15 +143,54 @@ describe("Responses Controller", () => {
       // First response
       await responsesController.capture(req);
 
-      // Second response should show already responded
+      // Second response within 180s should show comment form
       const response2 = await responsesController.capture(req);
 
       expect(response2.status).toBe(200);
       const html = await response2.text();
       expect(html).toContain("8"); // Should still show the score
-      expect(html).toContain(
-        "We&#x27;ve already recorded your response for this survey",
-      ); // Should indicate already responded
+      expect(html).toContain("Add more context to your response"); // Should indicate can still comment
+      expect(html).toContain("Share your thoughts"); // Should show comment form
+
+      // Should still only have one response in database
+      const responses = await connection`
+        SELECT * FROM responses WHERE survey_link_id IN (
+          SELECT id FROM survey_links WHERE token = ${token}
+        )
+      `;
+      expect(responses).toHaveLength(1);
+    });
+
+    it("should handle already responded scenario after 180s (show generic message)", async () => {
+      const setup = await createTestSurveySetup(testBusinessId);
+      const token = setup.tokens[8]; // Score of 8
+
+      const req = createBunRequest(
+        `http://localhost:3000/r/${token}`,
+        { method: "GET" },
+        { token },
+      );
+
+      // First response
+      await responsesController.capture(req);
+
+      // Manually set the response timestamp to 181 seconds ago
+      await connection`
+        UPDATE responses
+        SET responded_at = CURRENT_TIMESTAMP - INTERVAL '181 seconds'
+        WHERE survey_link_id IN (
+          SELECT id FROM survey_links WHERE token = ${token}
+        )
+      `;
+
+      // Second response after 180s should show generic thank you
+      const response2 = await responsesController.capture(req);
+
+      expect(response2.status).toBe(200);
+      const html = await response2.text();
+      expect(html).toContain("8"); // Should still show the score
+      expect(html).toContain("Response already recorded"); // Should show generic message
+      expect(html).not.toContain("Share your thoughts"); // Should NOT show comment form
 
       // Should still only have one response in database
       const responses = await connection`
@@ -189,9 +228,7 @@ describe("Responses Controller", () => {
       expect(response2.status).toBe(200);
       const html2 = await response2.text();
       expect(html2).toContain("7"); // Should show score 7
-      expect(html2).toContain(
-        "We&#x27;ve already recorded your response for this survey",
-      ); // Should indicate already responded
+      expect(html2).toContain("Add more context to your response"); // Should indicate can still add comment (within 180s)
 
       // Should only have ONE response in database (for score 4)
       const responses = await connection`
@@ -473,8 +510,66 @@ describe("Responses Controller", () => {
       expect(secondCaptureResponse.status).toBe(200);
 
       const html = await secondCaptureResponse.text();
-      expect(html).toContain(
-        "We&#x27;ve already recorded your response for this survey",
+      expect(html).toContain("Add more context to your response");
+    });
+
+    it("should refresh webhook timer when comment added within 180s", async () => {
+      const setup = await createTestSurveySetup(testBusinessId);
+      const token = setup.tokens[9]; // Score of 9
+
+      // Set up webhook for this business
+      await connection`
+        UPDATE businesses
+        SET webhook_url = 'https://example.com/webhook',
+            webhook_secret = 'test-secret'
+        WHERE id = ${setup.businessId}
+      `;
+
+      // 1. Capture initial response
+      const captureReq = createBunRequest(
+        `http://localhost:3000/r/${token}`,
+        { method: "GET" },
+        { token },
+      );
+      await responsesController.capture(captureReq);
+
+      // Check initial webhook timing
+      const initialWebhook = await connection`
+        SELECT scheduled_for FROM webhook_queue
+        WHERE business_id = ${setup.businessId}
+          AND survey_id = ${setup.surveyId}
+          AND subject_id = ${setup.subjectId}
+      `;
+      expect(initialWebhook).toHaveLength(1);
+      const initialScheduledFor = new Date(initialWebhook[0].scheduled_for);
+
+      // Wait a moment to ensure time difference
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // 2. Add comment (within 180s)
+      const formData = new FormData();
+      formData.append("comment", "Great service!");
+
+      const commentReq = createBunRequest(
+        `http://localhost:3000/r/${token}/comment`,
+        { method: "POST", body: formData },
+        { token },
+      );
+      await responsesController.addComment(commentReq);
+
+      // Check that webhook timer was refreshed
+      const updatedWebhook = await connection`
+        SELECT scheduled_for FROM webhook_queue
+        WHERE business_id = ${setup.businessId}
+          AND survey_id = ${setup.surveyId}
+          AND subject_id = ${setup.subjectId}
+      `;
+      expect(updatedWebhook).toHaveLength(1);
+      const updatedScheduledFor = new Date(updatedWebhook[0].scheduled_for);
+
+      // Updated scheduled time should be later than initial
+      expect(updatedScheduledFor.getTime()).toBeGreaterThan(
+        initialScheduledFor.getTime(),
       );
     });
   });

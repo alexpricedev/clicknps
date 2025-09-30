@@ -312,8 +312,34 @@ export const updatePendingWebhookComment = async (
 ): Promise<boolean> => {
   const result = (await db`
     UPDATE webhook_queue
-    SET 
+    SET
       comment = ${comment},
+      updated_at = CURRENT_TIMESTAMP
+    WHERE business_id = ${businessId}
+      AND survey_id = ${surveyId}
+      AND subject_id = ${subjectId}
+      AND status = 'pending'
+  `) as DatabaseMutationResult;
+
+  return hasAffectedRows(result);
+};
+
+/**
+ * Refresh the timer on a pending webhook (resets the 180s delay)
+ */
+export const refreshPendingWebhookTimer = async (
+  businessId: string,
+  surveyId: string,
+  subjectId: string,
+  delaySeconds = 180,
+): Promise<boolean> => {
+  const newScheduledFor = new Date();
+  newScheduledFor.setSeconds(newScheduledFor.getSeconds() + delaySeconds);
+
+  const result = (await db`
+    UPDATE webhook_queue
+    SET
+      scheduled_for = ${newScheduledFor},
       updated_at = CURRENT_TIMESTAMP
     WHERE business_id = ${businessId}
       AND survey_id = ${surveyId}
