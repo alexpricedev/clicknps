@@ -8,6 +8,7 @@ import {
   Trash2,
 } from "lucide-react";
 import type { JSX } from "react";
+import { Alert } from "../components/alert";
 import { CsrfField } from "../components/csrf-field";
 import { Layout } from "../components/layouts";
 import { PageHeader } from "../components/page-header";
@@ -61,62 +62,77 @@ export const ApiKeysSettings = (props: ApiKeysSettingsProps): JSX.Element => {
 
         {/* Success Messages */}
         {state?.created && (
-          <div className="alert alert-success mb-6">
-            <CheckCircle className="w-6 h-6" />
-            <div>
-              <div className="font-semibold">API Key Created Successfully</div>
-              <div className="text-sm">
-                Your new API key <strong>"{state.created.name}"</strong> has
-                been created. Copy this key now - it won't be shown again.
-              </div>
-              <div className="bg-base-100 border border-base-300 rounded p-3 mt-3 mb-3">
-                <code className="text-sm break-all select-all">
-                  {state.created.token}
-                </code>
-              </div>
-              <button type="button" className="btn btn-sm btn-success">
-                <Copy className="w-4 h-4" />
-                Copy Key
-              </button>
-            </div>
+          <div className="mb-6">
+            <Alert
+              type="success"
+              icon={<CheckCircle className="w-6 h-6" />}
+              title="API Key Created Successfully"
+              description={
+                <div>
+                  <div>
+                    Your new API key <strong>"{state.created.name}"</strong> has
+                    been created. Copy this key now - it won't be shown again.
+                  </div>
+                  <div className="bg-base-100 border border-base-300 rounded p-3 mt-3 mb-3">
+                    <code className="text-sm break-all select-all">
+                      {state.created.token}
+                    </code>
+                  </div>
+                  <button type="button" className="btn btn-sm btn-success">
+                    <Copy className="w-4 h-4" />
+                    Copy Key
+                  </button>
+                </div>
+              }
+            />
           </div>
         )}
 
         {state?.rotated && (
-          <div className="alert alert-info mb-6">
-            <RefreshCw className="w-6 h-6" />
-            <div>
-              <div className="font-semibold">API Key Rotated Successfully</div>
-              <div className="text-sm">
-                Your API key <strong>"{state.rotated.name}"</strong> has been
-                rotated. Copy this new key now - it won't be shown again.
-              </div>
-              <div className="bg-base-100 border border-base-300 rounded p-3 mt-3 mb-3">
-                <code className="text-sm break-all select-all">
-                  {state.rotated.token}
-                </code>
-              </div>
-              <button type="button" className="btn btn-sm btn-info">
-                <Copy className="w-4 h-4" />
-                Copy Key
-              </button>
-            </div>
+          <div className="mb-6">
+            <Alert
+              type="info"
+              icon={<RefreshCw className="w-6 h-6" />}
+              title="API Key Rotated Successfully"
+              description={
+                <div>
+                  <div>
+                    Your API key <strong>"{state.rotated.name}"</strong> has
+                    been rotated. Copy this new key now - it won't be shown
+                    again.
+                  </div>
+                  <div className="bg-base-100 border border-base-300 rounded p-3 mt-3 mb-3">
+                    <code className="text-sm break-all select-all">
+                      {state.rotated.token}
+                    </code>
+                  </div>
+                  <button type="button" className="btn btn-sm btn-info">
+                    <Copy className="w-4 h-4" />
+                    Copy Key
+                  </button>
+                </div>
+              }
+            />
           </div>
         )}
 
         {state?.revoked && (
-          <div className="alert alert-warning mb-6">
-            <Trash2 className="w-6 h-6" />
-            <div className="font-semibold">
-              API Key "{state.revoked.name}" has been revoked successfully.
-            </div>
+          <div className="mb-6">
+            <Alert
+              type="warning"
+              icon={<Trash2 className="w-6 h-6" />}
+              title={`API Key "${state.revoked.name}" has been revoked successfully.`}
+            />
           </div>
         )}
 
         {state?.error && (
-          <div className="alert alert-error mb-6">
-            <AlertTriangle className="w-6 h-6" />
-            <span className="font-semibold">Error: {state.error}</span>
+          <div className="mb-6">
+            <Alert
+              type="error"
+              icon={<AlertTriangle className="w-6 h-6" />}
+              title={`Error: ${state.error}`}
+            />
           </div>
         )}
 

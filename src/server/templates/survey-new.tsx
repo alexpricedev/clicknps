@@ -1,5 +1,6 @@
 import { AlertTriangle, ArrowLeft } from "lucide-react";
 import type { JSX } from "react";
+import { Alert } from "../components/alert";
 import { CsrfField } from "../components/csrf-field";
 import { Layout } from "../components/layouts";
 import { PageHeader } from "../components/page-header";
@@ -41,10 +42,11 @@ export const SurveyNew = (props: SurveyNewProps): JSX.Element => {
               <CsrfField token={props.createCsrfToken} />
 
               {props.state?.error && (
-                <div className="alert alert-error">
-                  <AlertTriangle className="w-6 h-6" />
-                  <span>{props.state.error}</span>
-                </div>
+                <Alert
+                  type="error"
+                  icon={<AlertTriangle className="w-6 h-6" />}
+                  title={props.state.error}
+                />
               )}
 
               <fieldset className="fieldset">

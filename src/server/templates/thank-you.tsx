@@ -1,4 +1,5 @@
 import { CheckCircle, MessageSquare } from "lucide-react";
+import { Alert } from "../components/alert";
 import { BaseLayout } from "../components/layouts";
 
 interface ResponseState {
@@ -57,60 +58,33 @@ export const ThankYouPage = ({
 
               {state?.commented ? (
                 <div className="space-y-4">
-                  <div className="bg-success/20 border border-success/30 rounded-lg p-6 flex items-start gap-4">
-                    <div className="flex-shrink-0">
-                      <div className="bg-success/20 rounded-full p-3">
-                        <CheckCircle className="w-8 h-8 text-success" />
-                      </div>
-                    </div>
-                    <div className="flex-1 text-left">
-                      <h3 className="font-semibold text-lg mb-1">
-                        Comment submitted successfully!
-                      </h3>
-                      <p className="opacity-80">
-                        Thank you for taking the time to share your detailed
-                        feedback with us.
-                      </p>
-                    </div>
-                  </div>
+                  <Alert
+                    type="success"
+                    icon={<CheckCircle className="w-6 h-6" />}
+                    dismissible={false}
+                    title="Comment submitted successfully!"
+                    description="Thank you for taking the time to share your detailed feedback with us."
+                  />
                 </div>
               ) : alreadyResponded && !withinCommentWindow ? (
                 <div className="space-y-4">
-                  <div className="bg-info/10 border border-info/20 rounded-lg p-6 flex items-start gap-4">
-                    <div className="flex-shrink-0">
-                      <div className="bg-info/20 rounded-full p-3">
-                        <CheckCircle className="w-8 h-8 text-info" />
-                      </div>
-                    </div>
-                    <div className="flex-1 text-left">
-                      <h3 className="font-semibold text-lg mb-1">
-                        Response already recorded
-                      </h3>
-                      <p className="opacity-80">
-                        We've already captured your feedback for this survey.
-                        Thank you for your response!
-                      </p>
-                    </div>
-                  </div>
+                  <Alert
+                    type="info"
+                    icon={<CheckCircle className="w-6 h-6" />}
+                    dismissible={false}
+                    title="Response already recorded"
+                    description="We've already captured your feedback for this survey. Thank you for your response!"
+                  />
                 </div>
               ) : alreadyResponded && withinCommentWindow ? (
                 <div className="space-y-6">
-                  <div className="bg-info/10 border border-info/20 rounded-lg p-6 flex items-start gap-4">
-                    <div className="flex-shrink-0">
-                      <div className="bg-info/20 rounded-full p-3">
-                        <MessageSquare className="w-8 h-8 text-info" />
-                      </div>
-                    </div>
-                    <div className="flex-1 text-left">
-                      <h3 className="font-semibold text-lg mb-1">
-                        Add more context to your response
-                      </h3>
-                      <p className="opacity-80">
-                        Your score has been recorded. You still have time to add
-                        additional comments if you'd like.
-                      </p>
-                    </div>
-                  </div>
+                  <Alert
+                    type="info"
+                    icon={<MessageSquare className="w-6 h-6" />}
+                    dismissible={false}
+                    title="Add more context to your response"
+                    description="Your score has been recorded. You still have time to add additional comments if you'd like."
+                  />
 
                   <form
                     action={`/r/${token}/comment`}

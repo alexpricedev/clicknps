@@ -218,7 +218,7 @@ describe("Surveys Controller", () => {
       const html = await response.text();
 
       expect(html).toContain(
-        "Survey &quot;<!-- -->New Survey<!-- -->&quot; (ID:<!-- --> <!-- -->new-survey<!-- -->) created successfully!",
+        "Survey &quot;New Survey&quot; (ID: new-survey) created successfully!",
       );
       expect(html).toContain("You can now mint links for different subjects");
     });
@@ -556,9 +556,7 @@ describe("Surveys Controller", () => {
 
       expect(response.headers.get("content-type")).toBe("text/html");
       expect(html).toContain("Links generated successfully!");
-      expect(html).toContain(
-        "subject &quot;<!-- -->customer-123<!-- -->&quot;",
-      );
+      expect(html).toContain("subject &quot;customer-123&quot;");
       expect(html).toContain("Generated NPS Links (Score 0-10)");
 
       // Verify all links are rendered

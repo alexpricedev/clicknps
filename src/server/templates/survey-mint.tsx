@@ -1,5 +1,6 @@
 import { AlertTriangle, ArrowLeft, CheckCircle } from "lucide-react";
 import type { JSX } from "react";
+import { Alert } from "../components/alert";
 import { CsrfField } from "../components/csrf-field";
 import { Layout } from "../components/layouts";
 import { PageHeader } from "../components/page-header";
@@ -50,16 +51,13 @@ export const SurveyMint = (props: SurveyMintProps): JSX.Element => {
         </PageHeader>
 
         {props.state?.success && (
-          <div className="alert alert-success mb-6">
-            <CheckCircle className="w-6 h-6" />
-            <div>
-              <div className="font-semibold">Links generated successfully!</div>
-              <div className="text-sm">
-                NPS links for subject "{props.state.success.subjectId}" expire
-                on{" "}
-                {new Date(props.state.success.expires_at).toLocaleDateString()}.
-              </div>
-            </div>
+          <div className="mb-6">
+            <Alert
+              type="success"
+              icon={<CheckCircle className="w-6 h-6" />}
+              title="Links generated successfully!"
+              description={`NPS links for subject "${props.state.success.subjectId}" expire on ${new Date(props.state.success.expires_at).toLocaleDateString()}.`}
+            />
           </div>
         )}
 
@@ -115,10 +113,11 @@ export const SurveyMint = (props: SurveyMintProps): JSX.Element => {
                 <CsrfField token={props.createCsrfToken} />
 
                 {props.state?.error && (
-                  <div className="alert alert-error">
-                    <AlertTriangle className="w-6 h-6" />
-                    <span>{props.state.error}</span>
-                  </div>
+                  <Alert
+                    type="error"
+                    icon={<AlertTriangle className="w-6 h-6" />}
+                    title={props.state.error}
+                  />
                 )}
 
                 <fieldset className="fieldset">

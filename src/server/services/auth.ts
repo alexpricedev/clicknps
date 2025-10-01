@@ -10,6 +10,8 @@ export interface User {
   id: string;
   email: string;
   business_id: string;
+  first_name?: string;
+  last_name?: string;
   created_at: Date;
 }
 
@@ -40,6 +42,8 @@ interface SessionQueryResult {
   user_id_result: string;
   email: string;
   business_id: string;
+  first_name: string | null;
+  last_name: string | null;
   user_created_at: string;
 }
 
@@ -55,8 +59,8 @@ export const findUser = async (email: string): Promise<User | null> => {
   const normalizedEmail = email.toLowerCase().trim();
 
   const existing = await db`
-    SELECT id, email, business_id, created_at 
-    FROM users 
+    SELECT id, email, business_id, first_name, last_name, created_at
+    FROM users
     WHERE email = ${normalizedEmail}
   `;
 
@@ -84,9 +88,9 @@ export const createUser = async (
   // Create new user with business_id
   const userId = randomUUID();
   const newUser = await db`
-    INSERT INTO users (id, email, business_id) 
-    VALUES (${userId}, ${normalizedEmail}, ${businessId}) 
-    RETURNING id, email, business_id, created_at
+    INSERT INTO users (id, email, business_id)
+    VALUES (${userId}, ${normalizedEmail}, ${businessId})
+    RETURNING id, email, business_id, first_name, last_name, created_at
   `;
 
   return newUser[0] as User;
@@ -186,8 +190,8 @@ export const verifyMagicLink = async (
   };
 
   const userResults = await db`
-    SELECT id, email, business_id, created_at 
-    FROM users 
+    SELECT id, email, business_id, first_name, last_name, created_at
+    FROM users
     WHERE id = ${tokenData.user_id}
   `;
 
@@ -199,6 +203,8 @@ export const verifyMagicLink = async (
     id: string;
     email: string;
     business_id: string;
+    first_name: string | null;
+    last_name: string | null;
     created_at: string;
   };
 
@@ -208,6 +214,8 @@ export const verifyMagicLink = async (
     id: userData.id,
     email: userData.email,
     business_id: userData.business_id,
+    first_name: userData.first_name ?? undefined,
+    last_name: userData.last_name ?? undefined,
     created_at: new Date(userData.created_at),
   };
 
@@ -243,10 +251,10 @@ export const getSession = async (
     const sessionIdHash = computeHMAC(rawSessionId);
 
     const result = await db`
-      SELECT 
-        s.id_hash, s.user_id, s.expires_at as session_expires_at, 
+      SELECT
+        s.id_hash, s.user_id, s.expires_at as session_expires_at,
         s.last_activity_at as session_last_activity_at, s.created_at as session_created_at,
-        u.id as user_id_result, u.email, u.business_id, u.created_at as user_created_at
+        u.id as user_id_result, u.email, u.business_id, u.first_name, u.last_name, u.created_at as user_created_at
       FROM sessions s
       JOIN users u ON s.user_id = u.id
       WHERE s.id_hash = ${sessionIdHash}
@@ -264,6 +272,8 @@ export const getSession = async (
         id: data.user_id_result,
         email: data.email,
         business_id: data.business_id,
+        first_name: data.first_name ?? undefined,
+        last_name: data.last_name ?? undefined,
         created_at: new Date(data.user_created_at),
       },
       session: {

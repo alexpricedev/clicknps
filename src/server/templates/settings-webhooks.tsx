@@ -10,6 +10,7 @@ import {
   Zap,
 } from "lucide-react";
 import type { JSX } from "react";
+import { Alert } from "../components/alert";
 import { CsrfField } from "../components/csrf-field";
 import { Layout } from "../components/layouts";
 import { PageHeader } from "../components/page-header";
@@ -113,73 +114,71 @@ export const WebhookSettings = (props: WebhookSettingsProps): JSX.Element => {
 
         {/* Success Messages */}
         {state?.updated && (
-          <div className="alert alert-success mb-6">
-            <CheckCircle className="w-6 h-6" />
-            <div>
-              <div className="font-semibold">
-                Webhook Settings Updated Successfully
-              </div>
-              <div className="text-sm">
-                Your webhook URL has been configured:
-              </div>
-              <div className="bg-base-100 border border-base-300 rounded p-3 mt-2">
-                <code className="text-sm break-all select-all">
-                  {state.updated.webhook_url}
-                </code>
-              </div>
-              {state.updated.webhook_secret && (
-                <div className="mt-3">
-                  <div className="text-sm font-medium mb-2">
-                    Webhook Secret (copy this now - it won't be shown again):
-                  </div>
-                  <div className="bg-base-100 border border-base-300 rounded p-3 mb-3">
+          <div className="mb-6">
+            <Alert
+              type="success"
+              icon={<CheckCircle className="w-6 h-6" />}
+              title="Webhook Settings Updated Successfully"
+              description={
+                <div>
+                  <div>Your webhook URL has been configured:</div>
+                  <div className="bg-base-100 border border-base-300 rounded p-3 mt-2">
                     <code className="text-sm break-all select-all">
-                      {state.updated.webhook_secret}
+                      {state.updated.webhook_url}
                     </code>
                   </div>
-                  <button type="button" className="btn btn-sm btn-success">
-                    <Copy className="w-4 h-4" />
-                    Copy Secret
-                  </button>
+                  {state.updated.webhook_secret && (
+                    <div className="mt-3">
+                      <div className="text-sm font-medium mb-2">
+                        Webhook Secret (copy this now - it won't be shown
+                        again):
+                      </div>
+                      <div className="bg-base-100 border border-base-300 rounded p-3 mb-3">
+                        <code className="text-sm break-all select-all">
+                          {state.updated.webhook_secret}
+                        </code>
+                      </div>
+                      <button type="button" className="btn btn-sm btn-success">
+                        <Copy className="w-4 h-4" />
+                        Copy Secret
+                      </button>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              }
+            />
           </div>
         )}
 
         {state?.testSuccess && (
-          <div className="alert alert-success mb-6">
-            <CheckCircle className="w-6 h-6" />
-            <div>
-              <div className="font-semibold">
-                Test Webhook Sent Successfully
-              </div>
-              <div className="text-sm">
-                Your endpoint responded with status code{" "}
-                {state.testSuccess.statusCode}. Your webhook is working
-                correctly!
-              </div>
-            </div>
+          <div className="mb-6">
+            <Alert
+              type="success"
+              icon={<CheckCircle className="w-6 h-6" />}
+              title="Test Webhook Sent Successfully"
+              description={`Your endpoint responded with status code ${state.testSuccess.statusCode}. Your webhook is working correctly!`}
+            />
           </div>
         )}
 
         {state?.testError && (
-          <div className="alert alert-error mb-6">
-            <X className="w-6 h-6" />
-            <div>
-              <div className="font-semibold">Test Webhook Failed</div>
-              <div className="text-sm">
-                Status code: {state.testError.statusCode || "No response"}
-              </div>
-              <div className="text-sm">Error: {state.testError.message}</div>
-            </div>
+          <div className="mb-6">
+            <Alert
+              type="error"
+              icon={<X className="w-6 h-6" />}
+              title="Test Webhook Failed"
+              description={`Status code: ${state.testError.statusCode || "No response"}. Error: ${state.testError.message}`}
+            />
           </div>
         )}
 
         {state?.error && (
-          <div className="alert alert-error mb-6">
-            <AlertTriangle className="w-6 h-6" />
-            <span className="font-semibold">Error: {state.error}</span>
+          <div className="mb-6">
+            <Alert
+              type="error"
+              icon={<AlertTriangle className="w-6 h-6" />}
+              title={`Error: ${state.error}`}
+            />
           </div>
         )}
 

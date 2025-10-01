@@ -50,7 +50,10 @@ export const appRoutes = {
     GET: settings.webhooks,
     POST: settings.webhooks,
   }),
-  "/settings/profile": profile.index,
+  "/settings/profile": createRouteHandler({
+    GET: profile.index,
+    POST: profile.update,
+  }),
   "/settings/team": team.index,
   "/settings/support": support.index,
   "/login": createRouteHandler({

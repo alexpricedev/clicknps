@@ -21,5 +21,10 @@ if (url.searchParams.get("state")) {
 }
 window.history.replaceState({}, "", url.toString());
 
-// Custom component scripts
-import "@client/components/my-paragraph";
+// Alert close functionality
+document.querySelectorAll('[data-action="close-alert"]').forEach((button) => {
+  button.addEventListener("click", () => {
+    const alert = button.closest("[data-dismissible]");
+    alert?.remove();
+  });
+});

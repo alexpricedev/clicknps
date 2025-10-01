@@ -7,6 +7,7 @@ import {
   Users,
 } from "lucide-react";
 import type { JSX } from "react";
+import { Alert } from "../components/alert";
 import { Layout } from "../components/layouts";
 import { PageHeader } from "../components/page-header";
 import type { AuthContext } from "../middleware/auth";
@@ -47,17 +48,13 @@ export const Surveys = (props: SurveysProps): JSX.Element => {
         </PageHeader>
 
         {props.state?.created && (
-          <div className="alert alert-success mb-6">
-            <CheckCircle className="w-6 h-6" />
-            <div>
-              <div className="font-semibold">
-                Survey "{props.state.created.title}" (ID:{" "}
-                {props.state.created.surveyId}) created successfully!
-              </div>
-              <div className="text-sm">
-                You can now mint links for different subjects using this survey.
-              </div>
-            </div>
+          <div className="mb-6">
+            <Alert
+              type="success"
+              icon={<CheckCircle className="w-6 h-6" />}
+              title={`Survey "${props.state.created.title}" (ID: ${props.state.created.surveyId}) created successfully!`}
+              description="You can now mint links for different subjects using this survey."
+            />
           </div>
         )}
 

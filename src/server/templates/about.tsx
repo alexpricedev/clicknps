@@ -1,5 +1,4 @@
 import { Layout } from "@server/components/layouts";
-import { MyParagraph } from "@server/components/my-paragraph";
 import type { AuthContext } from "@server/middleware/auth";
 
 type AboutProps = {
@@ -20,12 +19,6 @@ export const About = ({ auth, csrfToken }: AboutProps) => (
         CSS.
       </p>
       <p>And this is a custom web component! 👇</p>
-      <MyParagraph>
-        <span slot="my-text">
-          I'm a custom web component, overriding the default text. I have scoped
-          JS and styles for when you need a little more control.
-        </span>
-      </MyParagraph>
     </section>
   </Layout>
 );
