@@ -108,6 +108,14 @@ export const responsesController = {
         180,
       );
 
+      // Check for pre-comment redirect
+      if (survey.redirect_url && survey.redirect_timing === "pre_comment") {
+        return new Response("", {
+          status: 303,
+          headers: { Location: survey.redirect_url },
+        });
+      }
+
       // Show thank you page with comment form
       const html = renderToString(
         <ThankYouPage
@@ -200,6 +208,14 @@ export const responsesController = {
             180,
           );
         }
+      }
+
+      // Check for post-comment redirect
+      if (survey.redirect_url && survey.redirect_timing === "post_comment") {
+        return new Response("", {
+          status: 303,
+          headers: { Location: survey.redirect_url },
+        });
       }
 
       // Redirect back to thank you page with state

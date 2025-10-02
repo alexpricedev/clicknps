@@ -1,4 +1,5 @@
 import { afterAll, describe, expect, mock, test } from "bun:test";
+import type { AuthContext } from "../../middleware/auth";
 import { createMockVisitorStats } from "../../test-utils/factories";
 import { createMockRequest } from "../../test-utils/setup";
 
@@ -9,10 +10,13 @@ mock.module("../../services/analytics", () => ({
 }));
 
 // Mock the auth middleware
-const mockGetAuthContext = mock(() => ({
-  user: null,
-  isAuthenticated: false,
-}));
+const mockGetAuthContext = mock(
+  (): AuthContext => ({
+    user: null,
+    business: null,
+    isAuthenticated: false,
+  }),
+);
 mock.module("../../middleware/auth", () => ({
   getAuthContext: mockGetAuthContext,
 }));
@@ -25,13 +29,7 @@ describe("Home Controller", () => {
   });
 
   describe("GET /", () => {
-    test("renders home page with visitor stats", async () => {
-      const mockStats = createMockVisitorStats({
-        visitorCount: 1234,
-        lastUpdated: "2025-09-12T10:00:00.000Z",
-      });
-      mockGetVisitorStats.mockReturnValue(mockStats);
-
+    test("renders home page with content", async () => {
       const request = createMockRequest("http://localhost:3000/", "GET");
       const response = await home.index(request);
       const html = await response.text();
@@ -39,20 +37,21 @@ describe("Home Controller", () => {
       expect(mockGetVisitorStats).toHaveBeenCalled();
       expect(response.headers.get("content-type")).toBe("text/html");
 
-      // Test actual HTML content
-      expect(html).toContain("Home Page");
-      expect(html).toContain("1234");
-      expect(html).toContain("9/12/2025, 10:00:00 AM");
+      expect(html).toContain(
+        "Track Customer Satisfaction with Simple NPS Surveys",
+      );
+      expect(html).toContain("ClickNPS makes it easy to collect");
+      expect(html).toContain("Unique Survey Links");
+      expect(html).toContain("Real-time Analytics");
+      expect(html).toContain("Webhook Integration");
     });
 
-    test("passes request method to template", async () => {
-      // Create request directly with POST method
-      const request = new Request("http://localhost:3000/", { method: "POST" });
+    test("returns 200 status for home page", async () => {
+      const request = createMockRequest("http://localhost:3000/", "GET");
       const response = await home.index(request);
-      const html = await response.text();
 
-      // The HTML should contain the POST method somewhere
-      expect(html).toContain("POST");
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toBe("text/html");
     });
   });
 });

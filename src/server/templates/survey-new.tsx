@@ -122,6 +122,87 @@ export const SurveyNew = (props: SurveyNewProps): JSX.Element => {
                 </p>
               </fieldset>
 
+              <fieldset className="fieldset">
+                <legend className="fieldset-legend">Redirect Behavior</legend>
+                <p className="label mb-3">
+                  Choose whether to redirect users to your own page after they
+                  respond, or show the default ClickNPS thank you page where
+                  they will have the option to add a comment.
+                </p>
+                <div className="flex flex-col space-y-3">
+                  <label className="label cursor-pointer justify-start gap-3">
+                    <input
+                      type="radio"
+                      name="redirectTiming"
+                      value=""
+                      defaultChecked
+                      className="radio radio-primary"
+                      data-action="redirect-timing-radio"
+                    />
+                    <span className="label-text">
+                      No redirect (use ClickNPS thank you page)
+                    </span>
+                  </label>
+                  <label className="label cursor-pointer justify-start gap-3">
+                    <input
+                      type="radio"
+                      name="redirectTiming"
+                      value="post_comment"
+                      className="radio radio-primary"
+                      data-action="redirect-timing-radio"
+                    />
+                    <span className="label-text">Redirect after comment</span>
+                  </label>
+                  <label className="label cursor-pointer justify-start gap-3">
+                    <input
+                      type="radio"
+                      name="redirectTiming"
+                      value="pre_comment"
+                      className="radio radio-primary"
+                      data-action="redirect-timing-radio"
+                    />
+                    <span className="label-text">Redirect after click</span>
+                  </label>
+                </div>
+
+                <div
+                  className="mt-4 hidden"
+                  data-element="redirect-url-input"
+                  id="redirectUrlInput"
+                >
+                  <label htmlFor="redirectUrl" className="label">
+                    <span className="label-text font-medium">
+                      Redirect URL *
+                    </span>
+                  </label>
+                  <input
+                    type="url"
+                    id="redirectUrl"
+                    name="redirectUrl"
+                    placeholder="https://example.com/thank-you"
+                    className="input w-full"
+                  />
+                  <p className="label">
+                    Enter the URL where users should be redirected after
+                    responding.
+                  </p>
+                </div>
+
+                <div
+                  className="mt-4 hidden"
+                  data-warning="pre-comment"
+                  id="preCommentWarning"
+                >
+                  <Alert
+                    type="warning"
+                    icon={<AlertTriangle className="w-5 h-5" />}
+                    dismissible={false}
+                    title="Pre-comment redirects reduce written feedback."
+                    description="Users will be immediately redirected to your URL after clicking their score, without the opportunity to provide additional comments."
+                  />
+                </div>
+              </fieldset>
+
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
                 <button type="submit" className="btn btn-primary">
                   Create Survey

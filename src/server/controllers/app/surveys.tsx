@@ -122,6 +122,8 @@ export const surveys = {
         ?.trim()
         ?.toLowerCase();
       const ttlDaysStr = formData.get("ttlDays")?.toString()?.trim();
+      const redirectUrl = formData.get("redirectUrl")?.toString()?.trim();
+      const redirectTiming = formData.get("redirectTiming")?.toString()?.trim();
 
       // Validate required fields
       if (!title || !surveyId || !ttlDaysStr) {
@@ -170,6 +172,41 @@ export const surveys = {
         );
       }
 
+      // Validate redirect timing if provided
+      if (
+        redirectTiming &&
+        redirectTiming !== "" &&
+        redirectTiming !== "pre_comment" &&
+        redirectTiming !== "post_comment"
+      ) {
+        return redirect(
+          buildRedirectUrlWithStateForSurveyNew("/surveys/new", {
+            error: "Invalid redirect timing option",
+          }),
+        );
+      }
+
+      // If redirect timing is set (not empty), validate URL is required and valid
+      if (redirectTiming && redirectTiming !== "") {
+        if (!redirectUrl || redirectUrl.length === 0) {
+          return redirect(
+            buildRedirectUrlWithStateForSurveyNew("/surveys/new", {
+              error:
+                "Redirect URL is required when redirect timing is selected",
+            }),
+          );
+        }
+        try {
+          new URL(redirectUrl);
+        } catch {
+          return redirect(
+            buildRedirectUrlWithStateForSurveyNew("/surveys/new", {
+              error: "Invalid redirect URL format",
+            }),
+          );
+        }
+      }
+
       const auth = await getAuthContext(req);
       if (!auth.business) {
         return new Response("Business not found", { status: 404 });
@@ -190,6 +227,14 @@ export const surveys = {
         title,
         description,
         ttl_days: ttlDays,
+        redirect_url:
+          redirectTiming && redirectTiming !== "" && redirectUrl
+            ? redirectUrl
+            : undefined,
+        redirect_timing:
+          redirectTiming && redirectTiming !== ""
+            ? (redirectTiming as "pre_comment" | "post_comment")
+            : undefined,
       });
 
       const successState: SurveysState = {

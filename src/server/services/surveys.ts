@@ -13,6 +13,8 @@ export interface Survey {
   title: string;
   description: string | null;
   ttl_days: number;
+  redirect_url: string | null;
+  redirect_timing: "pre_comment" | "post_comment" | null;
   created_at: Date;
 }
 
@@ -71,8 +73,8 @@ export const findSurvey = async (
   surveyId: string,
 ): Promise<Survey | null> => {
   const result = await db`
-    SELECT id, business_id, survey_id, title, description, ttl_days, created_at
-    FROM surveys 
+    SELECT id, business_id, survey_id, title, description, ttl_days, redirect_url, redirect_timing, created_at
+    FROM surveys
     WHERE business_id = ${businessId} AND survey_id = ${surveyId}
   `;
 
@@ -88,8 +90,8 @@ export const findSurvey = async (
  */
 export const listSurveys = async (businessId: string): Promise<Survey[]> => {
   const result = await db`
-    SELECT id, business_id, survey_id, title, description, ttl_days, created_at
-    FROM surveys 
+    SELECT id, business_id, survey_id, title, description, ttl_days, redirect_url, redirect_timing, created_at
+    FROM surveys
     WHERE business_id = ${businessId}
     ORDER BY created_at DESC
   `;
@@ -103,17 +105,25 @@ export const listSurveys = async (businessId: string): Promise<Survey[]> => {
 export const createSurvey = async (
   businessId: string,
   surveyId: string,
-  options: { title: string; description?: string; ttl_days?: number },
+  options: {
+    title: string;
+    description?: string;
+    ttl_days?: number;
+    redirect_url?: string;
+    redirect_timing?: "pre_comment" | "post_comment";
+  },
 ): Promise<Survey> => {
   const id = randomUUID();
   const title = options.title;
   const description = options?.description || null;
   const ttlDays = options?.ttl_days || 30;
+  const redirectUrl = options?.redirect_url || null;
+  const redirectTiming = options?.redirect_timing || null;
 
   const result = await db`
-    INSERT INTO surveys (id, business_id, survey_id, title, description, ttl_days)
-    VALUES (${id}, ${businessId}, ${surveyId}, ${title}, ${description}, ${ttlDays})
-    RETURNING id, business_id, survey_id, title, description, ttl_days, created_at
+    INSERT INTO surveys (id, business_id, survey_id, title, description, ttl_days, redirect_url, redirect_timing)
+    VALUES (${id}, ${businessId}, ${surveyId}, ${title}, ${description}, ${ttlDays}, ${redirectUrl}, ${redirectTiming})
+    RETURNING id, business_id, survey_id, title, description, ttl_days, redirect_url, redirect_timing, created_at
   `;
 
   return result[0] as Survey;
@@ -221,11 +231,11 @@ export const findSurveyLinkWithDetails = async (
   survey: Survey;
 } | null> => {
   const result = await db`
-    SELECT 
-      sl.id as link_id, sl.token, sl.survey_id as link_survey_id, 
+    SELECT
+      sl.id as link_id, sl.token, sl.survey_id as link_survey_id,
       sl.subject_id, sl.score, sl.expires_at, sl.created_at as link_created_at,
-      s.id as survey_id, s.business_id, s.survey_id as survey_name, 
-      s.title, s.description, s.ttl_days, s.created_at as survey_created_at
+      s.id as survey_id, s.business_id, s.survey_id as survey_name,
+      s.title, s.description, s.ttl_days, s.redirect_url, s.redirect_timing, s.created_at as survey_created_at
     FROM survey_links sl
     JOIN surveys s ON sl.survey_id = s.id
     WHERE sl.token = ${token}
@@ -249,6 +259,8 @@ export const findSurveyLinkWithDetails = async (
     title: string;
     description: string | null;
     ttl_days: number;
+    redirect_url: string | null;
+    redirect_timing: "pre_comment" | "post_comment" | null;
     survey_created_at: Date;
   };
 
@@ -274,6 +286,8 @@ export const findSurveyLinkWithDetails = async (
     title: row.title,
     description: row.description,
     ttl_days: row.ttl_days,
+    redirect_url: row.redirect_url,
+    redirect_timing: row.redirect_timing,
     created_at: row.survey_created_at,
   };
 

@@ -110,6 +110,46 @@ describe("Surveys Service with PostgreSQL", () => {
       expect(survey.title).toBe("Test Survey");
       expect(survey.description).toBeNull();
     });
+
+    it("should create survey with redirect_url and redirect_timing", async () => {
+      const surveyId = "test-survey-redirect";
+      const options = {
+        title: "Redirect Survey",
+        redirect_url: "https://example.com/thank-you",
+        redirect_timing: "post_comment" as const,
+      };
+
+      const survey = await createSurvey(testBusinessId, surveyId, options);
+
+      expect(survey).toBeDefined();
+      expect(survey.redirect_url).toBe("https://example.com/thank-you");
+      expect(survey.redirect_timing).toBe("post_comment");
+    });
+
+    it("should create survey with pre_comment redirect timing", async () => {
+      const surveyId = "test-survey-redirect-pre";
+      const options = {
+        title: "Pre-comment Redirect Survey",
+        redirect_url: "https://example.com/instant-redirect",
+        redirect_timing: "pre_comment" as const,
+      };
+
+      const survey = await createSurvey(testBusinessId, surveyId, options);
+
+      expect(survey.redirect_url).toBe("https://example.com/instant-redirect");
+      expect(survey.redirect_timing).toBe("pre_comment");
+    });
+
+    it("should create survey with null redirect fields when not provided", async () => {
+      const surveyId = "test-survey-no-redirect";
+
+      const survey = await createSurvey(testBusinessId, surveyId, {
+        title: "No Redirect Survey",
+      });
+
+      expect(survey.redirect_url).toBeNull();
+      expect(survey.redirect_timing).toBeNull();
+    });
   });
 
   describe("findSurvey", () => {
@@ -139,6 +179,25 @@ describe("Surveys Service with PostgreSQL", () => {
         expect(foundSurvey.title).toBe("Found Survey");
         expect(foundSurvey.description).toBe("Test description");
         expect(foundSurvey.created_at).toEqual(createdSurvey.created_at);
+      }
+    });
+
+    it("should return survey with redirect fields", async () => {
+      const surveyId = "test-survey-with-redirect";
+
+      const createdSurvey = await createSurvey(testBusinessId, surveyId, {
+        title: "Redirect Survey",
+        redirect_url: "https://example.com/redirect",
+        redirect_timing: "pre_comment",
+      });
+
+      const foundSurvey = await findSurvey(testBusinessId, surveyId);
+
+      expect(foundSurvey).not.toBeNull();
+      if (foundSurvey) {
+        expect(foundSurvey.id).toBe(createdSurvey.id);
+        expect(foundSurvey.redirect_url).toBe("https://example.com/redirect");
+        expect(foundSurvey.redirect_timing).toBe("pre_comment");
       }
     });
   });
@@ -561,6 +620,72 @@ describe("Surveys Service with PostgreSQL", () => {
       expect(typeof returnedSurvey.survey_id).toBe("string");
       expect(typeof returnedSurvey.ttl_days).toBe("number");
       expect(returnedSurvey.created_at).toBeInstanceOf(Date);
+    });
+
+    it("should return survey with redirect fields when configured", async () => {
+      const survey = await createSurvey(
+        testBusinessId,
+        "test-survey-redirect-details",
+        {
+          title: "Redirect Details Test",
+          redirect_url: "https://example.com/custom-redirect",
+          redirect_timing: "post_comment",
+        },
+      );
+
+      const request: MintLinksRequest = {
+        subject_id: "user-redirect-details",
+      };
+
+      await mintSurveyLinks(survey, request);
+
+      const token = await getTokenForScore(
+        testBusinessId,
+        "test-survey-redirect-details",
+        7,
+      );
+      const result = await findSurveyLinkWithDetails(token);
+
+      expect(result).not.toBeNull();
+      if (!result) throw new Error("Result should not be null");
+
+      const { survey: returnedSurvey } = result;
+
+      expect(returnedSurvey.redirect_url).toBe(
+        "https://example.com/custom-redirect",
+      );
+      expect(returnedSurvey.redirect_timing).toBe("post_comment");
+    });
+
+    it("should return null redirect fields when not configured", async () => {
+      const survey = await createSurvey(
+        testBusinessId,
+        "test-survey-no-redirect-details",
+        {
+          title: "No Redirect Test",
+        },
+      );
+
+      const request: MintLinksRequest = {
+        subject_id: "user-no-redirect-details",
+      };
+
+      await mintSurveyLinks(survey, request);
+
+      const token = await getTokenForScore(
+        testBusinessId,
+        "test-survey-no-redirect-details",
+        4,
+      );
+      const result = await findSurveyLinkWithDetails(token);
+
+      expect(result).not.toBeNull();
+      if (!result) throw new Error("Result should not be null");
+
+      const { survey: returnedSurvey } = result;
+
+      expect(returnedSurvey.redirect_url).toBeNull();
+      expect(returnedSurvey.redirect_timing).toBeNull();
     });
   });
 });

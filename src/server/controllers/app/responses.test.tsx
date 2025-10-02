@@ -463,6 +463,179 @@ describe("Responses Controller", () => {
     });
   });
 
+  describe("Redirect Behavior", () => {
+    it("should redirect immediately for pre_comment timing", async () => {
+      const surveyId = `test-survey-redirect-pre-${randomUUID().slice(0, 8)}`;
+      const survey = await createSurvey(testBusinessId, surveyId, {
+        title: "Pre-comment Redirect Survey",
+        redirect_url: "https://example.com/thanks",
+        redirect_timing: "pre_comment",
+      });
+
+      const request: MintLinksRequest = {
+        subject_id: "user-redirect-pre",
+        ttl_days: 30,
+      };
+      const mintResult = await mintSurveyLinks(survey, request);
+      const token = mintResult.links["8"].split("/r/")[1];
+
+      const req = createBunRequest(
+        `http://localhost:3000/r/${token}`,
+        { method: "GET" },
+        { token },
+      );
+
+      const response = await responsesController.capture(req);
+
+      expect(response.status).toBe(303);
+      expect(response.headers.get("Location")).toBe(
+        "https://example.com/thanks",
+      );
+
+      const responses = await connection`
+        SELECT * FROM responses WHERE survey_link_id IN (
+          SELECT id FROM survey_links WHERE token = ${token}
+        )
+      `;
+      expect(responses).toHaveLength(1);
+    });
+
+    it("should redirect after comment for post_comment timing", async () => {
+      const surveyId = `test-survey-redirect-post-${randomUUID().slice(0, 8)}`;
+      const survey = await createSurvey(testBusinessId, surveyId, {
+        title: "Post-comment Redirect Survey",
+        redirect_url: "https://example.com/feedback-received",
+        redirect_timing: "post_comment",
+      });
+
+      const request: MintLinksRequest = {
+        subject_id: "user-redirect-post",
+        ttl_days: 30,
+      };
+      const mintResult = await mintSurveyLinks(survey, request);
+      const token = mintResult.links["9"].split("/r/")[1];
+
+      const captureReq = createBunRequest(
+        `http://localhost:3000/r/${token}`,
+        { method: "GET" },
+        { token },
+      );
+      const captureResponse = await responsesController.capture(captureReq);
+
+      expect(captureResponse.status).toBe(200);
+      const html = await captureResponse.text();
+      expect(html).toContain("Thank you for being a promoter!");
+
+      const formData = new FormData();
+      formData.append("comment", "Great service!");
+
+      const commentReq = createBunRequest(
+        `http://localhost:3000/r/${token}/comment`,
+        { method: "POST", body: formData },
+        { token },
+      );
+
+      const commentResponse = await responsesController.addComment(commentReq);
+
+      expect(commentResponse.status).toBe(303);
+      expect(commentResponse.headers.get("Location")).toBe(
+        "https://example.com/feedback-received",
+      );
+    });
+
+    it("should show thank you page when no redirect configured", async () => {
+      const surveyId = `test-survey-no-redirect-${randomUUID().slice(0, 8)}`;
+      const survey = await createSurvey(testBusinessId, surveyId, {
+        title: "No Redirect Survey",
+      });
+
+      const request: MintLinksRequest = {
+        subject_id: "user-no-redirect",
+        ttl_days: 30,
+      };
+      const mintResult = await mintSurveyLinks(survey, request);
+      const token = mintResult.links["7"].split("/r/")[1];
+
+      const req = createBunRequest(
+        `http://localhost:3000/r/${token}`,
+        { method: "GET" },
+        { token },
+      );
+
+      const response = await responsesController.capture(req);
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("Content-Type")).toBe("text/html");
+      const html = await response.text();
+      expect(html).toContain("Thank you for your feedback!");
+    });
+
+    it("should not redirect on capture when redirect_timing is post_comment", async () => {
+      const surveyId = `test-survey-post-only-${randomUUID().slice(0, 8)}`;
+      const survey = await createSurvey(testBusinessId, surveyId, {
+        title: "Post-only Redirect Survey",
+        redirect_url: "https://example.com/later",
+        redirect_timing: "post_comment",
+      });
+
+      const request: MintLinksRequest = {
+        subject_id: "user-post-only",
+        ttl_days: 30,
+      };
+      const mintResult = await mintSurveyLinks(survey, request);
+      const token = mintResult.links["6"].split("/r/")[1];
+
+      const req = createBunRequest(
+        `http://localhost:3000/r/${token}`,
+        { method: "GET" },
+        { token },
+      );
+
+      const response = await responsesController.capture(req);
+
+      expect(response.status).toBe(200);
+      const html = await response.text();
+      expect(html).toContain("Thank you for your honest feedback!");
+    });
+
+    it("should not redirect on comment when redirect_timing is pre_comment", async () => {
+      const surveyId = `test-survey-pre-only-${randomUUID().slice(0, 8)}`;
+      const survey = await createSurvey(testBusinessId, surveyId, {
+        title: "Pre-only Redirect Survey",
+        redirect_url: "https://example.com/early",
+        redirect_timing: "pre_comment",
+      });
+
+      const request: MintLinksRequest = {
+        subject_id: "user-pre-only",
+        ttl_days: 30,
+      };
+      const mintResult = await mintSurveyLinks(survey, request);
+      const token = mintResult.links["5"].split("/r/")[1];
+
+      await connection`
+        INSERT INTO responses (id, survey_link_id)
+        SELECT ${randomUUID()}, id FROM survey_links WHERE token = ${token}
+      `;
+
+      const formData = new FormData();
+      formData.append("comment", "Good experience");
+
+      const commentReq = createBunRequest(
+        `http://localhost:3000/r/${token}/comment`,
+        { method: "POST", body: formData },
+        { token },
+      );
+
+      const response = await responsesController.addComment(commentReq);
+
+      expect(response.status).toBe(303);
+      const location = response.headers.get("Location");
+      expect(location).toMatch(new RegExp(`^/r/${token}`));
+      expect(location).not.toBe("https://example.com/early");
+    });
+  });
+
   describe("Integration Tests", () => {
     it("should handle complete response flow with comment", async () => {
       const setup = await createTestSurveySetup(testBusinessId);

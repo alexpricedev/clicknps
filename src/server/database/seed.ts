@@ -175,6 +175,8 @@ const seedResponses = async (businessId: string) => {
           title: survey.title,
           description: survey.description,
           ttl_days: survey.ttl_days || 30,
+          redirect_url: null,
+          redirect_timing: null,
           created_at: new Date(),
         },
         { subject_id: subjectId, ttl_days: 365 },

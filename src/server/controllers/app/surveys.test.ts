@@ -37,6 +37,8 @@ const mockListSurveys = mock(() => [
     title: "Customer Satisfaction",
     description: "Q4 customer satisfaction survey",
     ttl_days: 30,
+    redirect_url: null,
+    redirect_timing: null,
     created_at: new Date("2024-01-01T00:00:00Z"),
   },
   {
@@ -46,6 +48,8 @@ const mockListSurveys = mock(() => [
     title: "Employee NPS",
     description: null,
     ttl_days: 14,
+    redirect_url: null,
+    redirect_timing: null,
     created_at: new Date("2024-01-15T00:00:00Z"),
   },
 ]);
@@ -59,6 +63,8 @@ const mockFindSurvey = mock((businessId: string, surveyId: string) => {
       title: "Existing Survey",
       description: null,
       ttl_days: 30,
+      redirect_url: null,
+      redirect_timing: null,
       created_at: new Date(),
     };
   }
@@ -69,7 +75,13 @@ const mockCreateSurvey = mock(
   (
     businessId: string,
     surveyId: string,
-    options?: { title?: string; description?: string; ttl_days?: number },
+    options?: {
+      title?: string;
+      description?: string;
+      ttl_days?: number;
+      redirect_url?: string;
+      redirect_timing?: "pre_comment" | "post_comment";
+    },
   ) => ({
     id: "new-survey-id",
     business_id: businessId,
@@ -77,6 +89,8 @@ const mockCreateSurvey = mock(
     title: options?.title || null,
     description: options?.description || null,
     ttl_days: options?.ttl_days || 30,
+    redirect_url: options?.redirect_url || null,
+    redirect_timing: options?.redirect_timing || null,
     created_at: new Date(),
   }),
 );
@@ -241,11 +255,17 @@ describe("Surveys Controller", () => {
       expect(html).toContain('name="surveyId"');
       expect(html).toContain('name="description"');
       expect(html).toContain('name="ttlDays"');
+      expect(html).toContain('name="redirectUrl"');
+      expect(html).toContain('name="redirectTiming"');
       expect(html).toContain("Create Survey");
       expect(html).toContain("Survey Name");
       expect(html).toContain("Survey ID");
       expect(html).toContain("Description");
       expect(html).toContain("Default Link Expiry");
+      expect(html).toContain("Redirect Behavior");
+      expect(html).toContain("No redirect");
+      expect(html).toContain("Redirect after comment");
+      expect(html).toContain("Redirect after click");
       expect(html).toContain("input");
       expect(html).toContain("textarea");
       expect(html).toContain("Back to Surveys");
@@ -849,6 +869,8 @@ describe("Surveys Controller", () => {
         title: "Empty Survey",
         description: null,
         ttl_days: 30,
+        redirect_url: null,
+        redirect_timing: null,
         created_at: new Date(),
       }));
 
