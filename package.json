@@ -20,6 +20,7 @@
     "migrate:up": "bun run src/server/database/cli.ts up",
     "migrate:status": "bun run src/server/database/cli.ts status",
     "migrate:create": "bun run src/server/database/cli.ts create",
+    "seed": "bun run src/server/database/seed.ts",
     "prepare": "husky"
   },
   "devDependencies": {
@@ -46,6 +47,7 @@
     "gitmojisUrl": "https://gitmoji.dev/api/gitmojis"
   },
   "dependencies": {
+    "chart.js": "^4.5.0",
     "lucide-react": "^0.544.0"
   }
 }

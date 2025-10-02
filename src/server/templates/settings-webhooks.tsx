@@ -6,7 +6,6 @@ import {
   Loader,
   TestTube,
   Webhook,
-  X,
   Zap,
 } from "lucide-react";
 import type { JSX } from "react";
@@ -65,15 +64,15 @@ export const WebhookSettings = (props: WebhookSettingsProps): JSX.Element => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "delivered":
-        return "badge badge-success";
+        return "badge badge-success badge-soft";
       case "failed":
-        return "badge badge-error";
+        return "badge badge-error badge-soft";
       case "pending":
-        return "badge badge-warning";
+        return "badge badge-warning badge-soft";
       case "processing":
-        return "badge badge-info";
+        return "badge badge-info badge-soft";
       default:
-        return "badge badge-neutral";
+        return "badge badge-neutral badge-soft";
     }
   };
 
@@ -83,7 +82,7 @@ export const WebhookSettings = (props: WebhookSettingsProps): JSX.Element => {
       case "delivered":
         return <CheckCircle className={iconClass} />;
       case "failed":
-        return <X className={iconClass} />;
+        return <AlertTriangle className={iconClass} />;
       case "pending":
         return <Clock className={iconClass} />;
       case "processing":
@@ -165,7 +164,7 @@ export const WebhookSettings = (props: WebhookSettingsProps): JSX.Element => {
           <div className="mb-6">
             <Alert
               type="error"
-              icon={<X className="w-6 h-6" />}
+              icon={<AlertTriangle className="w-6 h-6" />}
               title="Test Webhook Failed"
               description={`Status code: ${state.testError.statusCode || "No response"}. Error: ${state.testError.message}`}
             />
@@ -373,7 +372,7 @@ export const WebhookSettings = (props: WebhookSettingsProps): JSX.Element => {
         </div>
 
         {/* Help Section */}
-        <div className="card bg-info text-info-content">
+        <div className="card bg-neutral text-neutral-content">
           <div className="card-body">
             <h3 className="card-title text-lg mb-3">
               <Zap className="w-5 h-5" />
@@ -396,19 +395,17 @@ export const WebhookSettings = (props: WebhookSettingsProps): JSX.Element => {
                 header for verification
               </p>
               <p>• Example payload:</p>
-              <div className="bg-base-100 text-base-content px-3 py-2 rounded text-xs mt-2">
-                <pre className="whitespace-pre-wrap">
-                  {JSON.stringify(
-                    {
-                      survey_id: "abc123",
-                      subject_id: "user42",
-                      score: 9,
-                      comment: "Loving the product!",
-                      timestamp: "2025-09-15T10:01:00Z",
-                    },
-                    null,
-                    2,
-                  )}
+              <div className="mockup-code w-full bg-base-100">
+                <pre>
+                  <code>
+                    {`{
+    survey_id: "abc123",
+    subject_id: "user42",
+    score: 9,
+    comment: "Loving the product!",
+    timestamp: "2025-09-15T10:01:00Z",
+  }`}
+                  </code>
                 </pre>
               </div>
             </div>

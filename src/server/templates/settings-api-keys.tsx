@@ -187,20 +187,18 @@ export const ApiKeysSettings = (props: ApiKeysSettingsProps): JSX.Element => {
           </h2>
 
           {apiKeys.length === 0 ? (
-            <div className="text-center py-12 px-4">
-              <div className="hero bg-base-200 rounded-box p-8 max-w-md mx-auto">
-                <div className="hero-content text-center">
-                  <div className="max-w-md">
-                    <div className="mb-4">
-                      <Key className="w-16 h-16 mx-auto opacity-50" />
-                    </div>
-                    <h3 className="text-xl font-bold mb-2">No API keys yet</h3>
-                    <p className="mb-6 opacity-80">
-                      Create your first API key to start integrating with our
-                      API. API keys allow your applications to authenticate and
-                      make requests to our services.
-                    </p>
+            <div className="hero bg-base-200 rounded-box p-8">
+              <div className="hero-content text-center">
+                <div className="max-w-md">
+                  <div className="mb-4">
+                    <Key className="w-16 h-16 mx-auto opacity-50" />
                   </div>
+                  <h3 className="text-xl font-bold mb-2">No API keys yet</h3>
+                  <p className="mb-6 opacity-80">
+                    Create your first API key to start integrating with our API.
+                    API keys allow your applications to authenticate and make
+                    requests to our services.
+                  </p>
                 </div>
               </div>
             </div>
@@ -281,7 +279,7 @@ export const ApiKeysSettings = (props: ApiKeysSettingsProps): JSX.Element => {
         </div>
 
         {/* Help Section */}
-        <div className="card bg-info text-info-content">
+        <div className="card bg-neutral text-neutral-content">
           <div className="card-body">
             <h3 className="card-title text-lg mb-3">
               <Shield className="w-5 h-5" />

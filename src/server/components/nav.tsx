@@ -8,7 +8,7 @@ const guestNavLinks = [
 ];
 
 const authNavLinks = [
-  { href: "/dashboard", label: "Dashboard", name: "dashboard" },
+  { href: "/", label: "Dashboard", name: "dashboard" },
   { href: "/surveys", label: "Surveys", name: "surveys" },
 ];
 

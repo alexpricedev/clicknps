@@ -91,7 +91,7 @@ export const Surveys = (props: SurveysProps): JSX.Element => {
                   <div className="list-col-grow min-w-0">
                     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                       <div className="min-w-0 flex-1">
-                        <div className="text-lg font-semibold text-base-content truncate">
+                        <div className="text-lg font-semibold text-base-content truncate flex items-center">
                           <a
                             href={`/surveys/${survey.survey_id}/responses`}
                             className="link link-hover"
