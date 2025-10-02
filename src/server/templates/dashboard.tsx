@@ -90,22 +90,26 @@ const ResponseCard = ({ response }: { response: LatestResponse }) => {
   return (
     <div className="card bg-base-200 shadow-sm">
       <div className="card-body p-4">
-        <div className="flex justify-between items-start gap-2 mb-2">
+        <div className="flex justify-between items-start gap-2">
           <h3 className="card-title text-base">{response.surveyName}</h3>
-          <div className={`badge ${getScoreBadgeClass(response.score)}`}>
-            {response.score}
+          <div className="flex items-center gap-2">
+            <div className="text-xs text-base-content/50">
+              {formatRelativeTime(response.respondedAt)}
+            </div>
+            <div className={`badge ${getScoreBadgeClass(response.score)}`}>
+              {response.score}
+            </div>
           </div>
         </div>
-        <div className="text-sm text-base-content/70 mb-2">
+        <div className="text-sm text-base-content/70">
           <span className="font-semibold">{getScoreLabel(response.score)}</span>{" "}
-          · Subject: {response.subjectId}
+          · {response.subjectId}
         </div>
-        {response.comment && (
-          <p className="text-sm line-clamp-2 mb-2">{response.comment}</p>
+        {response.comment ? (
+          <p className="text-sm line-clamp-2">{response.comment}</p>
+        ) : (
+          <p className="text-sm opacity-20">No comment</p>
         )}
-        <div className="text-xs text-base-content/50">
-          {formatRelativeTime(response.respondedAt)}
-        </div>
       </div>
     </div>
   );

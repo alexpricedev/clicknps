@@ -360,7 +360,7 @@ export const WebhookSettings = (props: WebhookSettingsProps): JSX.Element => {
                             HTTP {delivery.response_status_code}
                           </div>
                         ) : (
-                          <div className="badge badge-neutral">No response</div>
+                          <div className="badge bg-base-100">Pending</div>
                         )}
                       </div>
                     </div>
