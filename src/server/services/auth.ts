@@ -89,12 +89,12 @@ export const createUser = async (
     VALUES (${businessId}, ${businessName})
   `;
 
-  // Create new user with business_id
+  // Create new user with business_id as owner
   const userId = randomUUID();
   const newUser = await db`
-    INSERT INTO users (id, email, business_id)
-    VALUES (${userId}, ${normalizedEmail}, ${businessId})
-    RETURNING id, email, business_id, first_name, last_name, created_at
+    INSERT INTO users (id, email, business_id, role)
+    VALUES (${userId}, ${normalizedEmail}, ${businessId}, 'owner')
+    RETURNING id, email, business_id, first_name, last_name, role, created_at
   `;
 
   return newUser[0] as User;

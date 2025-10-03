@@ -64,9 +64,9 @@ mock.module("../../services/api-keys", () => ({
   rotateApiKey: mockRotateApiKey,
 }));
 
-import { settings } from "./settings";
+import { apiKeys } from "./api-keys";
 
-describe("Settings Controller", () => {
+describe("API Keys Controller", () => {
   beforeEach(async () => {
     await cleanupTestData(connection);
   });
@@ -109,7 +109,7 @@ describe("Settings Controller", () => {
           headers: { Cookie: cookieHeader },
         },
       );
-      const response = await settings.apiKeys(request);
+      const response = await apiKeys.index(request);
       const html = await response.text();
 
       expect(mockGetApiKeysByBusiness).toHaveBeenCalledWith(businessId);
@@ -126,7 +126,7 @@ describe("Settings Controller", () => {
       const request = createBunRequest(
         "http://localhost:3000/settings/api-keys",
       );
-      const response = await settings.apiKeys(request);
+      const response = await apiKeys.index(request);
 
       expect(response.status).toBe(303);
       expect(response.headers.get("location")).toBe("/login");
@@ -143,7 +143,7 @@ describe("Settings Controller", () => {
           headers: { Cookie: cookieHeader },
         },
       );
-      const response = await settings.apiKeys(request);
+      const response = await apiKeys.index(request);
       const html = await response.text();
 
       expect(html).toContain("No API keys yet");
@@ -187,7 +187,7 @@ describe("Settings Controller", () => {
         },
       );
 
-      const response = await settings.apiKeys(request);
+      const response = await apiKeys.index(request);
       const html = await response.text();
 
       expect(mockCreateApiKey).toHaveBeenCalledWith(
@@ -228,7 +228,7 @@ describe("Settings Controller", () => {
         },
       );
 
-      const response = await settings.apiKeys(request);
+      const response = await apiKeys.index(request);
       const html = await response.text();
 
       expect(mockCreateApiKey).not.toHaveBeenCalled();
@@ -258,7 +258,7 @@ describe("Settings Controller", () => {
         },
       );
 
-      const response = await settings.apiKeys(request);
+      const response = await apiKeys.index(request);
       const html = await response.text();
 
       expect(mockCreateApiKey).not.toHaveBeenCalled();
@@ -303,7 +303,7 @@ describe("Settings Controller", () => {
         },
       );
 
-      const response = await settings.apiKeys(request);
+      const response = await apiKeys.index(request);
       const html = await response.text();
 
       expect(mockRotateApiKey).toHaveBeenCalledWith("key-123", businessId);
@@ -341,7 +341,7 @@ describe("Settings Controller", () => {
         },
       );
 
-      const response = await settings.apiKeys(request);
+      const response = await apiKeys.index(request);
       const html = await response.text();
 
       expect(html).toContain("Key not found or cannot be rotated");
@@ -386,7 +386,7 @@ describe("Settings Controller", () => {
         },
       );
 
-      const response = await settings.apiKeys(request);
+      const response = await apiKeys.index(request);
       const html = await response.text();
 
       expect(mockDeleteApiKey).toHaveBeenCalledWith("key-123", businessId);
@@ -423,7 +423,7 @@ describe("Settings Controller", () => {
         },
       );
 
-      const response = await settings.apiKeys(request);
+      const response = await apiKeys.index(request);
       const html = await response.text();
 
       expect(html).toContain("Key not found");
@@ -466,7 +466,7 @@ describe("Settings Controller", () => {
         },
       );
 
-      const response = await settings.apiKeys(request);
+      const response = await apiKeys.index(request);
       const html = await response.text();
 
       expect(html).toContain("Key not found or already revoked");
@@ -492,7 +492,7 @@ describe("Settings Controller", () => {
         },
       );
 
-      const response = await settings.apiKeys(request);
+      const response = await apiKeys.index(request);
 
       expect(response.status).toBe(303);
       expect(response.headers.get("location")).toBe("/login");
@@ -519,7 +519,7 @@ describe("Settings Controller", () => {
         },
       );
 
-      const response = await settings.apiKeys(request);
+      const response = await apiKeys.index(request);
       const html = await response.text();
 
       expect(html).toContain("Invalid request");
@@ -553,7 +553,7 @@ describe("Settings Controller", () => {
         },
       );
 
-      const response = await settings.apiKeys(request);
+      const response = await apiKeys.index(request);
       const html = await response.text();
 
       expect(html).toContain("Invalid action");
@@ -580,7 +580,7 @@ describe("Settings Controller", () => {
           headers: { Cookie: cookieHeader },
         },
       );
-      await settings.apiKeys(request);
+      await apiKeys.index(request);
 
       expect(mockGetApiKeysByBusiness).toHaveBeenCalledWith(businessId);
     });
@@ -620,7 +620,7 @@ describe("Settings Controller", () => {
         },
       );
 
-      await settings.apiKeys(request);
+      await apiKeys.index(request);
 
       expect(mockCreateApiKey).toHaveBeenCalledWith(businessId, "Test Key");
     });

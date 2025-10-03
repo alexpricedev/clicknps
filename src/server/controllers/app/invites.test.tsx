@@ -1,5 +1,27 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { db } from "../../services/database";
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  mock,
+} from "bun:test";
+import { SQL } from "bun";
+import { cleanupTestData } from "../../test-utils/helpers";
+import { computeHMAC } from "../../utils/crypto";
+
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL is required for tests");
+}
+const connection = new SQL(process.env.DATABASE_URL);
+
+mock.module("../../services/database", () => ({
+  get db() {
+    return connection;
+  },
+}));
+
 import { invites } from "./invites";
 
 describe("invites controller", () => {
@@ -7,12 +29,10 @@ describe("invites controller", () => {
   let inviteToken: string;
 
   beforeEach(async () => {
-    // Clean up test data
-    await db`DELETE FROM business_invites WHERE email = 'testinvite@example.com'`;
-    await db`DELETE FROM users WHERE email = 'testinvite@example.com'`;
+    await cleanupTestData(connection);
 
     // Create a test business
-    const businessResult = await db`
+    const businessResult = await connection`
       INSERT INTO businesses (business_name, created_at, updated_at)
       VALUES ('Test Business', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       RETURNING id
@@ -21,11 +41,9 @@ describe("invites controller", () => {
 
     // Create an invite with a known token
     inviteToken = "test-token-123";
-    const tokenHash = await import("../../utils/crypto").then((m) =>
-      m.computeHMAC(inviteToken),
-    );
+    const tokenHash = computeHMAC(inviteToken);
 
-    await db`
+    await connection`
       INSERT INTO business_invites (id, business_id, email, role, token_hash, expires_at)
       VALUES (
         gen_random_uuid(),
@@ -39,10 +57,12 @@ describe("invites controller", () => {
   });
 
   afterEach(async () => {
-    // Clean up
-    await db`DELETE FROM business_invites WHERE email = 'testinvite@example.com'`;
-    await db`DELETE FROM users WHERE email = 'testinvite@example.com'`;
-    await db`DELETE FROM businesses WHERE id = ${businessId}`;
+    await cleanupTestData(connection);
+  });
+
+  afterAll(async () => {
+    await connection.end();
+    mock.restore();
   });
 
   describe("accept", () => {
@@ -51,12 +71,7 @@ describe("invites controller", () => {
       formData.append("token", inviteToken);
       formData.append("firstName", "Test");
       formData.append("lastName", "User");
-      formData.append(
-        "_csrf",
-        await import("../../utils/crypto").then((m) =>
-          m.computeHMAC(inviteToken),
-        ),
-      );
+      formData.append("_csrf", computeHMAC(inviteToken));
 
       const req = new Request("http://localhost:3000/invites/accept", {
         method: "POST",
@@ -72,7 +87,7 @@ describe("invites controller", () => {
       expect(location).toContain("Welcome%20to%20your%20team");
 
       // Verify user was created
-      const users = await db`
+      const users = await connection`
         SELECT * FROM users WHERE email = 'testinvite@example.com'
       `;
       expect(users.length).toBe(1);
@@ -124,12 +139,7 @@ describe("invites controller", () => {
       formData.append("token", inviteToken);
       formData.append("firstName", "");
       formData.append("lastName", "User");
-      formData.append(
-        "_csrf",
-        await import("../../utils/crypto").then((m) =>
-          m.computeHMAC(inviteToken),
-        ),
-      );
+      formData.append("_csrf", computeHMAC(inviteToken));
 
       const req = new Request("http://localhost:3000/invites/accept", {
         method: "POST",

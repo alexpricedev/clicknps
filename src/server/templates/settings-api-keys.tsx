@@ -12,7 +12,7 @@ import { Alert } from "../components/alert";
 import { CsrfField } from "../components/csrf-field";
 import { Layout } from "../components/layouts";
 import { PageHeader } from "../components/page-header";
-import type { ApiKeysState } from "../controllers/app/settings";
+import type { ApiKeysState } from "../controllers/app/api-keys";
 import type { AuthContext } from "../middleware/auth";
 
 export interface ApiKey {

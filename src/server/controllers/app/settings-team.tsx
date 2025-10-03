@@ -18,7 +18,7 @@ import { stateHelpers } from "../../utils/state";
 
 const teamStateHelpers = stateHelpers<TeamState>();
 
-export const team = {
+export const settingsTeam = {
   async index(req: Request): Promise<Response> {
     const authRequired = await requireAuth(req);
     if (authRequired) return authRequired;

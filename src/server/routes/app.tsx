@@ -1,17 +1,18 @@
 import {
   about,
+  apiKeys,
   dashboard,
   docs,
   examples,
   home,
   invites,
   pricing,
-  profile,
   responsesController,
-  settings,
+  settingsProfile,
+  settingsTeam,
   support,
   surveys,
-  team,
+  webhooks,
 } from "../controllers/app";
 import { callback, login, logout, signup } from "../controllers/auth";
 import { createRouteHandler } from "../utils/route-handler";
@@ -44,20 +45,20 @@ export const appRoutes = {
     GET: surveys.responses,
   }),
   "/settings/api-keys": createRouteHandler({
-    GET: settings.apiKeys,
-    POST: settings.apiKeys,
+    GET: apiKeys.index,
+    POST: apiKeys.index,
   }),
   "/settings/webhooks": createRouteHandler({
-    GET: settings.webhooks,
-    POST: settings.webhooks,
+    GET: webhooks.index,
+    POST: webhooks.index,
   }),
   "/settings/profile": createRouteHandler({
-    GET: profile.index,
-    POST: profile.update,
+    GET: settingsProfile.index,
+    POST: settingsProfile.update,
   }),
   "/settings/team": createRouteHandler({
-    GET: team.index,
-    POST: team.index,
+    GET: settingsTeam.index,
+    POST: settingsTeam.index,
   }),
   "/settings/support": support.index,
   "/invites/accept": createRouteHandler({
