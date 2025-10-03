@@ -28,7 +28,7 @@ type NavProps = {
 };
 
 export const Nav = ({ page, auth, csrfToken }: NavProps) => (
-  <div className="navbar container mx-auto px-0">
+  <div className="navbar container mx-auto px-4 sm:px-8">
     <div className="flex-1">
       <a
         className="flex items-center text-xl font-bold hover:text-primary group"

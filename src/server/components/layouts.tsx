@@ -34,10 +34,10 @@ export function Layout({
         <link rel="stylesheet" href="/assets/main.css" />
       </head>
       <body data-page={name}>
-        <header className="bg-base-300 mb-8 border-b border-base-content/15 px-4 sm:px-0">
+        <header className="bg-base-300 mb-8 border-b border-base-content/15">
           <Nav page={name} auth={auth} csrfToken={csrfToken} />
         </header>
-        <main className="container mx-auto px-4 sm:px-0 pb-8">{children}</main>
+        <main className="container mx-auto px-4 sm:px-8 pb-8">{children}</main>
         <script type="module" src="/assets/main.js" />
       </body>
     </html>
