@@ -65,6 +65,123 @@ describe("invites controller", () => {
     mock.restore();
   });
 
+  describe("acceptForm", () => {
+    it("should render invite accept form with valid token", async () => {
+      const req = new Request(
+        `http://localhost:3000/invites/accept?token=${inviteToken}`,
+        {
+          method: "GET",
+        },
+      );
+
+      const response = await invites.acceptForm(req);
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toBe("text/html");
+
+      const html = await response.text();
+      expect(html).toContain("Accept Invitation");
+      expect(html).toContain("Test Business");
+      expect(html).toContain("testinvite@example.com");
+      expect(html).toContain("firstName");
+      expect(html).toContain("lastName");
+      expect(html).toContain('type="submit"');
+    });
+
+    it("should render error for invalid token", async () => {
+      const req = new Request(
+        "http://localhost:3000/invites/accept?token=invalid-token",
+        {
+          method: "GET",
+        },
+      );
+
+      const response = await invites.acceptForm(req);
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toBe("text/html");
+
+      const html = await response.text();
+      expect(html).toContain("Invalid or expired invite link");
+    });
+
+    it("should return 400 if token is missing", async () => {
+      const req = new Request("http://localhost:3000/invites/accept", {
+        method: "GET",
+      });
+
+      const response = await invites.acceptForm(req);
+
+      expect(response.status).toBe(400);
+      const text = await response.text();
+      expect(text).toBe("Invalid invite link");
+    });
+
+    it("should render error message from state", async () => {
+      const state = encodeURIComponent(
+        JSON.stringify({ error: "Something went wrong" }),
+      );
+      const req = new Request(
+        `http://localhost:3000/invites/accept?token=${inviteToken}&state=${state}`,
+        {
+          method: "GET",
+        },
+      );
+
+      const response = await invites.acceptForm(req);
+
+      expect(response.status).toBe(200);
+      const html = await response.text();
+      expect(html).toContain("Something went wrong");
+    });
+
+    it("should render invite form with business name", async () => {
+      const req = new Request(
+        `http://localhost:3000/invites/accept?token=${inviteToken}`,
+        {
+          method: "GET",
+        },
+      );
+
+      const response = await invites.acceptForm(req);
+      const html = await response.text();
+
+      expect(html).toContain("Test Business");
+      expect(html).toContain("testinvite@example.com");
+    });
+
+    it("should render admin invite form", async () => {
+      // Create an admin invite
+      const adminToken = "admin-token-456";
+      const tokenHash = computeHMAC(adminToken);
+
+      await connection`
+        INSERT INTO business_invites (id, business_id, email, role, token_hash, expires_at)
+        VALUES (
+          gen_random_uuid(),
+          ${businessId},
+          'admin@example.com',
+          'admin',
+          ${tokenHash},
+          CURRENT_TIMESTAMP + INTERVAL '7 days'
+        )
+      `;
+
+      const req = new Request(
+        `http://localhost:3000/invites/accept?token=${adminToken}`,
+        {
+          method: "GET",
+        },
+      );
+
+      const response = await invites.acceptForm(req);
+      const html = await response.text();
+
+      expect(html).toContain("Test Business");
+      expect(html).toContain("admin@example.com");
+    });
+  });
+
   describe("accept", () => {
     it("should create user and redirect to dashboard with success state", async () => {
       const formData = new FormData();

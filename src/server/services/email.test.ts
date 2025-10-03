@@ -6,6 +6,7 @@ import {
   getEmailService,
   type MagicLinkEmailData,
   setEmailService,
+  type TeamInviteEmailData,
 } from "./email";
 
 class MockEmailProvider implements EmailProvider {
@@ -115,6 +116,148 @@ describe("Email Service", () => {
       const message = mockProvider.sentMessages[0];
       expect(message.from.email).toBe("custom@test.com");
       expect(message.from.name).toBe("Custom App");
+
+      process.env.FROM_EMAIL = originalFromEmail;
+      process.env.FROM_NAME = originalFromName;
+    });
+
+    test("sends team invite email with correct structure", async () => {
+      const data: TeamInviteEmailData = {
+        to: { email: "newmember@example.com", name: "New Member" },
+        inviteUrl: "https://example.com/invites/accept?token=invite123",
+        businessName: "Acme Corp",
+        role: "member",
+      };
+
+      await emailService.sendTeamInvite(data);
+
+      expect(mockProvider.sentMessages).toHaveLength(1);
+      const message = mockProvider.sentMessages[0];
+
+      expect(message.to).toEqual(data.to);
+      expect(message.subject).toBe(
+        "You've been invited to join Acme Corp on ClickNPS",
+      );
+      expect(message.from.email).toBe("test@test.com");
+      expect(message.from.name).toBe("Test");
+    });
+
+    test("includes invite details in HTML for member role", async () => {
+      const data: TeamInviteEmailData = {
+        to: { email: "member@example.com" },
+        inviteUrl: "https://example.com/invite?token=mem123",
+        businessName: "Test Business",
+        role: "member",
+      };
+
+      await emailService.sendTeamInvite(data);
+
+      const message = mockProvider.sentMessages[0];
+      expect(message.html).toContain(data.inviteUrl);
+      expect(message.html).toContain("Test Business");
+      expect(message.html).toContain("a member");
+      expect(message.html).toContain("Member");
+    });
+
+    test("includes invite details in HTML for admin role", async () => {
+      const data: TeamInviteEmailData = {
+        to: { email: "admin@example.com" },
+        inviteUrl: "https://example.com/invite?token=adm123",
+        businessName: "Test Business",
+        role: "admin",
+      };
+
+      await emailService.sendTeamInvite(data);
+
+      const message = mockProvider.sentMessages[0];
+      expect(message.html).toContain("an admin");
+      expect(message.html).toContain("Admin");
+    });
+
+    test("includes inviter name in team invite when provided", async () => {
+      const data: TeamInviteEmailData = {
+        to: { email: "member@example.com" },
+        inviteUrl: "https://example.com/invite",
+        businessName: "Test Business",
+        role: "member",
+        invitedByName: "John Doe",
+      };
+
+      await emailService.sendTeamInvite(data);
+
+      const message = mockProvider.sentMessages[0];
+      expect(message.html).toContain("John Doe has invited you");
+      expect(message.text).toContain("John Doe has invited you");
+    });
+
+    test("uses generic text in team invite when inviter name not provided", async () => {
+      const data: TeamInviteEmailData = {
+        to: { email: "member@example.com" },
+        inviteUrl: "https://example.com/invite",
+        businessName: "Test Business",
+        role: "member",
+      };
+
+      await emailService.sendTeamInvite(data);
+
+      const message = mockProvider.sentMessages[0];
+      expect(message.html).toContain("You've been invited");
+      expect(message.text).toContain("You've been invited");
+    });
+
+    test("includes team invite details in text content", async () => {
+      const data: TeamInviteEmailData = {
+        to: { email: "member@example.com" },
+        inviteUrl: "https://example.com/invite?token=text123",
+        businessName: "Test Business",
+        role: "admin",
+      };
+
+      await emailService.sendTeamInvite(data);
+
+      const message = mockProvider.sentMessages[0];
+      expect(message.text).toBeDefined();
+      expect(message.text).toContain(data.inviteUrl);
+      expect(message.text).toContain("Test Business");
+      expect(message.text).toContain("an admin");
+      expect(message.text).toContain("Role: Admin");
+    });
+
+    test("capitalizes role in team invite text template", async () => {
+      const data: TeamInviteEmailData = {
+        to: { email: "member@example.com" },
+        inviteUrl: "https://example.com/invite",
+        businessName: "Test Business",
+        role: "member",
+      };
+
+      await emailService.sendTeamInvite(data);
+
+      const message = mockProvider.sentMessages[0];
+      expect(message.text).toContain("Role: Member");
+      expect(message.text).toContain("a member");
+    });
+
+    test("uses environment variables for from address in team invite", async () => {
+      const originalFromEmail = process.env.FROM_EMAIL;
+      const originalFromName = process.env.FROM_NAME;
+
+      process.env.FROM_EMAIL = "invites@custom.com";
+      process.env.FROM_NAME = "Custom Team";
+
+      const customService = new EmailService(mockProvider);
+      const data: TeamInviteEmailData = {
+        to: { email: "member@example.com" },
+        inviteUrl: "https://example.com/invite",
+        businessName: "Test Business",
+        role: "member",
+      };
+
+      await customService.sendTeamInvite(data);
+
+      const message = mockProvider.sentMessages[0];
+      expect(message.from.email).toBe("invites@custom.com");
+      expect(message.from.name).toBe("Custom Team");
 
       process.env.FROM_EMAIL = originalFromEmail;
       process.env.FROM_NAME = originalFromName;
