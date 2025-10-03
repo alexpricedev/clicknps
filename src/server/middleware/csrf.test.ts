@@ -15,6 +15,9 @@ if (!process.env.DATABASE_URL) {
 }
 const connection = new SQL(process.env.DATABASE_URL);
 
+const originalAppOrigin = process.env.APP_ORIGIN;
+process.env.APP_ORIGIN = "http://example.com";
+
 mock.module("../services/database", () => ({
   get db() {
     return connection;
@@ -29,6 +32,7 @@ describe("CSRF Middleware", () => {
   afterAll(async () => {
     await connection.end();
     mock.restore();
+    process.env.APP_ORIGIN = originalAppOrigin;
   });
   const createTestSession = async (
     email = `test-${Date.now()}-${Math.random()}@example.com`,

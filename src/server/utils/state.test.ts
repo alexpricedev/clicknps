@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { stateHelpers } from "./state";
 
-// Mock APP_URL for tests
-const originalAppUrl = process.env.APP_URL;
-process.env.APP_URL = "http://localhost:3000";
+// Mock APP_ORIGIN for tests
+const originalAppOrigin = process.env.APP_ORIGIN;
+process.env.APP_ORIGIN = "http://localhost:3000";
 
 interface TestState {
   created?: boolean;
@@ -117,5 +117,5 @@ describe("State Helpers", () => {
   });
 });
 
-// Restore original APP_URL
-process.env.APP_URL = originalAppUrl;
+// Restore original APP_ORIGIN
+process.env.APP_ORIGIN = originalAppOrigin;

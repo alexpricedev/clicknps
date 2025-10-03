@@ -1,7 +1,3 @@
-if (!process.env.APP_URL) {
-  throw new Error("APP_URL is not set");
-}
-
 export const stateHelpers = <T>() => ({
   parseState: (url: URL): T => {
     const stateParam = url.searchParams.get("state");

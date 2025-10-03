@@ -6,6 +6,10 @@ import {
 } from "../utils/database";
 import { db } from "./database";
 
+if (!process.env.APP_ORIGIN) {
+  throw new Error("APP_ORIGIN is not set");
+}
+
 // CSRF configuration constants
 export const CSRF_HEADER_NAME = "X-CSRF-Token";
 export const CSRF_FIELD_NAME = "_csrf";
@@ -201,11 +205,7 @@ export const validateOrigin = (
     const origin = req.headers.get("Origin");
     const referer = req.headers.get("Referer");
 
-    // Determine expected origin from env or request
-    const expected =
-      expectedOrigin ||
-      process.env.APP_ORIGIN ||
-      `${new URL(req.url).protocol}//${new URL(req.url).host}`;
+    const expected = expectedOrigin || process.env.APP_ORIGIN;
 
     if (origin) {
       return origin === expected;
