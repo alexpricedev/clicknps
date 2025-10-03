@@ -1,9 +1,7 @@
 import {
   about,
   apiKeys,
-  dashboard,
   docs,
-  examples,
   home,
   invites,
   pricing,
@@ -22,14 +20,6 @@ export const appRoutes = {
   "/about": about.index,
   "/pricing": pricing.index,
   "/docs": docs.index,
-  "/dashboard": dashboard.index,
-  "/examples": createRouteHandler({
-    GET: examples.index,
-    POST: examples.create,
-  }),
-  "/examples/:id/delete": createRouteHandler({
-    POST: examples.destroy,
-  }),
   "/surveys": createRouteHandler({
     GET: surveys.index,
   }),

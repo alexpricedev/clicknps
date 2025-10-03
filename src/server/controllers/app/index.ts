@@ -1,8 +1,6 @@
 export { about } from "./about";
 export { apiKeys } from "./api-keys";
-export { dashboard } from "./dashboard";
 export { docs } from "./docs";
-export { examples } from "./examples";
 export { home } from "./home";
 export { invites } from "./invites";
 export { pricing } from "./pricing";
