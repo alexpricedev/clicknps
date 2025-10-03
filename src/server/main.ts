@@ -1,6 +1,9 @@
+import { runMigrations } from "./database/migrate";
 import { apiRoutes } from "./routes/api";
 import { appRoutes } from "./routes/app";
 import { startWebhookWorker } from "./services/queue-worker";
+
+await runMigrations();
 
 const server = Bun.serve({
   port: process.env.PORT || 3000,
