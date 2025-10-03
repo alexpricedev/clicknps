@@ -22,7 +22,7 @@ interface ResponseState {
 
 const responseStateHelpers = stateHelpers<ResponseState>();
 
-export const responsesController = {
+export const responses = {
   /**
    * Capture NPS response and show thank you page
    */

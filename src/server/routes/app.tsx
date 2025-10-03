@@ -5,11 +5,11 @@ import {
   home,
   invites,
   pricing,
-  responsesController,
-  settingsProfile,
-  settingsTeam,
+  profile,
+  responses,
   support,
   surveys,
+  team,
   webhooks,
 } from "../controllers/app";
 import { callback, login, logout, signup } from "../controllers/auth";
@@ -43,12 +43,12 @@ export const appRoutes = {
     POST: webhooks.index,
   }),
   "/settings/profile": createRouteHandler({
-    GET: settingsProfile.index,
-    POST: settingsProfile.update,
+    GET: profile.index,
+    POST: profile.update,
   }),
   "/settings/team": createRouteHandler({
-    GET: settingsTeam.index,
-    POST: settingsTeam.index,
+    GET: team.index,
+    POST: team.index,
   }),
   "/settings/support": support.index,
   "/invites/accept": createRouteHandler({
@@ -67,8 +67,8 @@ export const appRoutes = {
   "/auth/logout": createRouteHandler({
     POST: logout.create,
   }),
-  "/r/:token": responsesController.capture,
+  "/r/:token": responses.capture,
   "/r/:token/comment": createRouteHandler({
-    POST: responsesController.addComment,
+    POST: responses.addComment,
   }),
 };

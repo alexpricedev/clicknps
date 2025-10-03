@@ -10,7 +10,7 @@ import { stateHelpers } from "../../utils/state";
 
 const profileStateHelpers = stateHelpers<ProfileState>();
 
-export const settingsProfile = {
+export const profile = {
   async index(req: Request): Promise<Response> {
     const authRequired = await requireAuth(req);
     if (authRequired) return authRequired;

@@ -8,7 +8,7 @@ import {
 } from "../../services/api-keys";
 import { getSessionIdFromCookies } from "../../services/auth";
 import { createCsrfToken, verifyCsrfToken } from "../../services/csrf";
-import { ApiKeysSettings } from "../../templates/settings-api-keys";
+import { ApiKeysSettings } from "../../templates/api-keys";
 import { redirect, render } from "../../utils/response";
 
 export interface ApiKeysState {

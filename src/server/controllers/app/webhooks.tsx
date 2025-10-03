@@ -8,8 +8,8 @@ import {
   sendTestWebhook,
   updateWebhookSettings,
 } from "../../services/webhooks";
-import type { WebhookState } from "../../templates/settings-webhooks";
-import { WebhookSettings } from "../../templates/settings-webhooks";
+import type { WebhookState } from "../../templates/webhooks";
+import { Webhooks } from "../../templates/webhooks";
 import { redirect, render } from "../../utils/response";
 
 export const webhooks = {
@@ -41,7 +41,7 @@ export const webhooks = {
     ]);
 
     return render(
-      <WebhookSettings
+      <Webhooks
         auth={auth}
         webhookSettings={
           webhookSettings || { webhook_url: null, webhook_secret: null }
@@ -163,7 +163,7 @@ async function createSuccessResponse(
   ]);
 
   return render(
-    <WebhookSettings
+    <Webhooks
       auth={auth}
       webhookSettings={
         webhookSettings || { webhook_url: null, webhook_secret: null }
@@ -188,7 +188,7 @@ async function createErrorResponse(
   ]);
 
   return render(
-    <WebhookSettings
+    <Webhooks
       auth={auth}
       webhookSettings={
         webhookSettings || { webhook_url: null, webhook_secret: null }

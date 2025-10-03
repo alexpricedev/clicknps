@@ -17,7 +17,7 @@ mock.module("../../services/database", () => ({
 
 import { createSession } from "../../services/auth";
 import { createCsrfToken } from "../../services/csrf";
-import { settingsProfile } from "./settings-profile";
+import { profile } from "./profile";
 
 describe("Profile Controller", () => {
   let testBusinessId: string;
@@ -51,7 +51,7 @@ describe("Profile Controller", () => {
         },
       });
 
-      const response = await settingsProfile.index(req);
+      const response = await profile.index(req);
 
       expect(response.status).toBe(200);
       expect(response.headers.get("content-type")).toBe("text/html");
@@ -78,7 +78,7 @@ describe("Profile Controller", () => {
         },
       });
 
-      const response = await settingsProfile.index(req);
+      const response = await profile.index(req);
 
       expect(response.status).toBe(200);
       const html = await response.text();
@@ -98,7 +98,7 @@ describe("Profile Controller", () => {
         },
       );
 
-      const response = await settingsProfile.index(req);
+      const response = await profile.index(req);
       const html = await response.text();
 
       expect(html).toContain("Profile updated successfully");
@@ -116,7 +116,7 @@ describe("Profile Controller", () => {
         },
       );
 
-      const response = await settingsProfile.index(req);
+      const response = await profile.index(req);
       const html = await response.text();
 
       expect(html).toContain("Test error");
@@ -127,7 +127,7 @@ describe("Profile Controller", () => {
         method: "GET",
       });
 
-      const response = await settingsProfile.index(req);
+      const response = await profile.index(req);
 
       expect(response.status).toBe(303);
       expect(response.headers.get("location")).toBe("/login");
@@ -155,7 +155,7 @@ describe("Profile Controller", () => {
         body: formData,
       });
 
-      const response = await settingsProfile.update(req);
+      const response = await profile.update(req);
 
       expect(response.status).toBe(303);
       const location = response.headers.get("location");
@@ -188,7 +188,7 @@ describe("Profile Controller", () => {
         body: formData,
       });
 
-      const response = await settingsProfile.update(req);
+      const response = await profile.update(req);
 
       expect(response.status).toBe(303);
       const location = response.headers.get("location");
@@ -216,7 +216,7 @@ describe("Profile Controller", () => {
         body: formData,
       });
 
-      const response = await settingsProfile.update(req);
+      const response = await profile.update(req);
 
       expect(response.status).toBe(303);
       const location = response.headers.get("location");
@@ -245,7 +245,7 @@ describe("Profile Controller", () => {
         body: formData,
       });
 
-      const response = await settingsProfile.update(req);
+      const response = await profile.update(req);
 
       expect(response.status).toBe(303);
       const location = response.headers.get("location");
@@ -274,7 +274,7 @@ describe("Profile Controller", () => {
         body: formData,
       });
 
-      const response = await settingsProfile.update(req);
+      const response = await profile.update(req);
 
       expect(response.status).toBe(303);
       const location = response.headers.get("location");
@@ -303,7 +303,7 @@ describe("Profile Controller", () => {
         body: formData,
       });
 
-      const response = await settingsProfile.update(req);
+      const response = await profile.update(req);
 
       expect(response.status).toBe(303);
 
@@ -324,7 +324,7 @@ describe("Profile Controller", () => {
         body: formData,
       });
 
-      const response = await settingsProfile.update(req);
+      const response = await profile.update(req);
 
       expect(response.status).toBe(303);
       expect(response.headers.get("location")).toBe("/login");
@@ -345,7 +345,7 @@ describe("Profile Controller", () => {
         body: formData,
       });
 
-      const response = await settingsProfile.update(req);
+      const response = await profile.update(req);
 
       expect(response.status).toBe(403);
     });

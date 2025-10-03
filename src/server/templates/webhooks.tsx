@@ -31,7 +31,7 @@ export interface WebhookState {
   error?: string;
 }
 
-export interface WebhookSettingsProps {
+export interface WebhookSettings {
   auth: AuthContext;
   webhookSettings: {
     webhook_url: string | null;
@@ -42,7 +42,7 @@ export interface WebhookSettingsProps {
   csrfToken: string | null;
 }
 
-export const WebhookSettings = (props: WebhookSettingsProps): JSX.Element => {
+export const Webhooks = (props: WebhookSettings): JSX.Element => {
   const { webhookSettings, recentDeliveries, state, csrfToken } = props;
 
   const formatSecretDisplay = (secret: string | null): string => {
