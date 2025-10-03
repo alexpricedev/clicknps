@@ -20,10 +20,9 @@ interface ResponseState {
   commented?: boolean;
 }
 
-const { parseState, buildRedirectUrlWithState: redirectWithState } =
-  stateHelpers<ResponseState>();
+const responseStateHelpers = stateHelpers<ResponseState>();
 
-export const responsesController = {
+export const responses = {
   /**
    * Capture NPS response and show thank you page
    */
@@ -39,7 +38,7 @@ export const responsesController = {
     try {
       // Parse state from URL
       const url = new URL(req.url);
-      const state = parseState(url);
+      const state = responseStateHelpers.parseState(url);
 
       // Find the survey link with details for webhook queueing
       const linkWithDetails = await findSurveyLinkWithDetails(token);
@@ -222,7 +221,12 @@ export const responsesController = {
       const successState: ResponseState = { commented: true };
       return new Response("", {
         status: 303,
-        headers: { Location: redirectWithState(`/r/${token}`, successState) },
+        headers: {
+          Location: responseStateHelpers.buildRedirectUrlWithState(
+            `/r/${token}`,
+            successState,
+          ),
+        },
       });
     } catch (error) {
       console.error("Error adding comment:", error);

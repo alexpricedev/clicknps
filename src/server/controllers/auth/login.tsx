@@ -6,8 +6,7 @@ import { Login } from "../../templates/login";
 import { redirect, render } from "../../utils/response";
 import { stateHelpers } from "../../utils/state";
 
-const { parseState, buildRedirectUrlWithState: redirectWithState } =
-  stateHelpers<LoginState>();
+const loginStateHelpers = stateHelpers<LoginState>();
 
 export const login = {
   async index(req: Request): Promise<Response> {
@@ -15,7 +14,7 @@ export const login = {
     if (authRedirect) return authRedirect;
 
     const url = new URL(req.url);
-    const state = parseState(url);
+    const state = loginStateHelpers.parseState(url);
 
     return render(<Login state={state} />);
   },
@@ -26,7 +25,7 @@ export const login = {
 
     if (!email || !email.includes("@")) {
       return redirect(
-        redirectWithState("/login", {
+        loginStateHelpers.buildRedirectUrlWithState("/login", {
           validationError: true,
           error: "Invalid email address",
         }),
@@ -38,7 +37,7 @@ export const login = {
 
       if (!result) {
         return redirect(
-          redirectWithState("/login", {
+          loginStateHelpers.buildRedirectUrlWithState("/login", {
             validationError: true,
             error:
               "No account found with this email address. Please sign up first.",
@@ -58,10 +57,14 @@ export const login = {
         expiryMinutes: 15,
       });
 
-      return redirect(redirectWithState("/login", { emailSent: true }));
+      return redirect(
+        loginStateHelpers.buildRedirectUrlWithState("/login", {
+          emailSent: true,
+        }),
+      );
     } catch {
       return redirect(
-        redirectWithState("/login", {
+        loginStateHelpers.buildRedirectUrlWithState("/login", {
           validationError: true,
           error: "Something went wrong. Please try again.",
         }),

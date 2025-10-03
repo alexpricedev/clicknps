@@ -6,12 +6,15 @@ import {
 } from "../utils/database";
 import { db } from "./database";
 
+export type UserRole = "owner" | "admin" | "member";
+
 export interface User {
   id: string;
   email: string;
   business_id: string;
   first_name?: string;
   last_name?: string;
+  role?: UserRole;
   created_at: Date;
 }
 
@@ -44,6 +47,7 @@ interface SessionQueryResult {
   business_id: string;
   first_name: string | null;
   last_name: string | null;
+  role: UserRole;
   user_created_at: string;
 }
 
@@ -85,12 +89,12 @@ export const createUser = async (
     VALUES (${businessId}, ${businessName})
   `;
 
-  // Create new user with business_id
+  // Create new user with business_id as owner
   const userId = randomUUID();
   const newUser = await db`
-    INSERT INTO users (id, email, business_id)
-    VALUES (${userId}, ${normalizedEmail}, ${businessId})
-    RETURNING id, email, business_id, first_name, last_name, created_at
+    INSERT INTO users (id, email, business_id, role)
+    VALUES (${userId}, ${normalizedEmail}, ${businessId}, 'owner')
+    RETURNING id, email, business_id, first_name, last_name, role, created_at
   `;
 
   return newUser[0] as User;
@@ -254,7 +258,7 @@ export const getSession = async (
       SELECT
         s.id_hash, s.user_id, s.expires_at as session_expires_at,
         s.last_activity_at as session_last_activity_at, s.created_at as session_created_at,
-        u.id as user_id_result, u.email, u.business_id, u.first_name, u.last_name, u.created_at as user_created_at
+        u.id as user_id_result, u.email, u.business_id, u.first_name, u.last_name, u.role, u.created_at as user_created_at
       FROM sessions s
       JOIN users u ON s.user_id = u.id
       WHERE s.id_hash = ${sessionIdHash}
@@ -274,6 +278,7 @@ export const getSession = async (
         business_id: data.business_id,
         first_name: data.first_name ?? undefined,
         last_name: data.last_name ?? undefined,
+        role: data.role,
         created_at: new Date(data.user_created_at),
       },
       session: {

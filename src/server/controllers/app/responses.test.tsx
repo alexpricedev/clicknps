@@ -21,7 +21,7 @@ import {
   type MintLinksRequest,
   mintSurveyLinks,
 } from "../../services/surveys";
-import { responsesController } from "./responses";
+import { responses } from "./responses";
 
 // Test utilities for responses controller
 interface TestSurveySetup {
@@ -110,7 +110,7 @@ describe("Responses Controller", () => {
         { token },
       );
 
-      const response = await responsesController.capture(req);
+      const response = await responses.capture(req);
 
       expect(response.status).toBe(200);
       expect(response.headers.get("Content-Type")).toBe("text/html");
@@ -121,13 +121,13 @@ describe("Responses Controller", () => {
       expect(html).not.toContain("already recorded"); // First response
 
       // Verify response was recorded in database
-      const responses = await connection`
+      const responsesData = await connection`
         SELECT * FROM responses WHERE survey_link_id IN (
           SELECT id FROM survey_links WHERE token = ${token}
         )
       `;
-      expect(responses).toHaveLength(1);
-      expect(responses[0].comment).toBeNull();
+      expect(responsesData).toHaveLength(1);
+      expect(responsesData[0].comment).toBeNull();
     });
 
     it("should handle already responded scenario within 180s (show comment form)", async () => {
@@ -141,10 +141,10 @@ describe("Responses Controller", () => {
       );
 
       // First response
-      await responsesController.capture(req);
+      await responses.capture(req);
 
       // Second response within 180s should show comment form
-      const response2 = await responsesController.capture(req);
+      const response2 = await responses.capture(req);
 
       expect(response2.status).toBe(200);
       const html = await response2.text();
@@ -153,12 +153,12 @@ describe("Responses Controller", () => {
       expect(html).toContain("Share your thoughts"); // Should show comment form
 
       // Should still only have one response in database
-      const responses = await connection`
+      const responsesData = await connection`
         SELECT * FROM responses WHERE survey_link_id IN (
           SELECT id FROM survey_links WHERE token = ${token}
         )
       `;
-      expect(responses).toHaveLength(1);
+      expect(responsesData).toHaveLength(1);
     });
 
     it("should handle already responded scenario after 180s (show generic message)", async () => {
@@ -172,7 +172,7 @@ describe("Responses Controller", () => {
       );
 
       // First response
-      await responsesController.capture(req);
+      await responses.capture(req);
 
       // Manually set the response timestamp to 181 seconds ago
       await connection`
@@ -184,7 +184,7 @@ describe("Responses Controller", () => {
       `;
 
       // Second response after 180s should show generic thank you
-      const response2 = await responsesController.capture(req);
+      const response2 = await responses.capture(req);
 
       expect(response2.status).toBe(200);
       const html = await response2.text();
@@ -193,12 +193,12 @@ describe("Responses Controller", () => {
       expect(html).not.toContain("Share your thoughts"); // Should NOT show comment form
 
       // Should still only have one response in database
-      const responses = await connection`
+      const responsesData = await connection`
         SELECT * FROM responses WHERE survey_link_id IN (
           SELECT id FROM survey_links WHERE token = ${token}
         )
       `;
-      expect(responses).toHaveLength(1);
+      expect(responsesData).toHaveLength(1);
     });
 
     it("should prevent multiple responses across different score links", async () => {
@@ -212,7 +212,7 @@ describe("Responses Controller", () => {
         { method: "GET" },
         { token: token4 },
       );
-      const response1 = await responsesController.capture(req4);
+      const response1 = await responses.capture(req4);
       expect(response1.status).toBe(200);
       const html1 = await response1.text();
       expect(html1).toContain("4"); // Should show score 4
@@ -224,14 +224,14 @@ describe("Responses Controller", () => {
         { method: "GET" },
         { token: token7 },
       );
-      const response2 = await responsesController.capture(req7);
+      const response2 = await responses.capture(req7);
       expect(response2.status).toBe(200);
       const html2 = await response2.text();
       expect(html2).toContain("7"); // Should show score 7
       expect(html2).toContain("Add more context to your response"); // Should indicate can still add comment (within 180s)
 
       // Should only have ONE response in database (for score 4)
-      const responses = await connection`
+      const responsesData = await connection`
         SELECT r.*, sl.score 
         FROM responses r
         JOIN survey_links sl ON r.survey_link_id = sl.id
@@ -241,8 +241,8 @@ describe("Responses Controller", () => {
             AND survey_id = ${setup.surveyId}
         )
       `;
-      expect(responses).toHaveLength(1);
-      expect(responses[0].score).toBe(4); // Should only have the first response (score 4)
+      expect(responsesData).toHaveLength(1);
+      expect(responsesData[0].score).toBe(4); // Should only have the first response (score 4)
     });
 
     it("should return 400 for missing token", async () => {
@@ -252,7 +252,7 @@ describe("Responses Controller", () => {
         { token: "" },
       );
 
-      const response = await responsesController.capture(req);
+      const response = await responses.capture(req);
 
       expect(response.status).toBe(400);
       const text = await response.text();
@@ -266,7 +266,7 @@ describe("Responses Controller", () => {
         { token: "nonexistent" },
       );
 
-      const response = await responsesController.capture(req);
+      const response = await responses.capture(req);
 
       expect(response.status).toBe(404);
       const text = await response.text();
@@ -282,7 +282,7 @@ describe("Responses Controller", () => {
         { token: expiredToken },
       );
 
-      const response = await responsesController.capture(req);
+      const response = await responses.capture(req);
 
       expect(response.status).toBe(404);
       const text = await response.text();
@@ -301,7 +301,7 @@ describe("Responses Controller", () => {
         { method: "GET" },
         { token },
       );
-      await responsesController.capture(captureReq);
+      await responses.capture(captureReq);
 
       // Then add a comment
       const formData = new FormData();
@@ -313,7 +313,7 @@ describe("Responses Controller", () => {
         { token },
       );
 
-      const response = await responsesController.addComment(commentReq);
+      const response = await responses.addComment(commentReq);
 
       expect(response.status).toBe(303);
       const location = response.headers.get("Location");
@@ -322,13 +322,13 @@ describe("Responses Controller", () => {
       expect(decodeURIComponent(location)).toContain('"commented":true');
 
       // Verify comment was saved
-      const responses = await connection`
+      const responsesData = await connection`
         SELECT * FROM responses WHERE survey_link_id IN (
           SELECT id FROM survey_links WHERE token = ${token}
         )
       `;
-      expect(responses).toHaveLength(1);
-      expect(responses[0].comment).toBe("Great service!");
+      expect(responsesData).toHaveLength(1);
+      expect(responsesData[0].comment).toBe("Great service!");
     });
 
     it("should create response with comment if no response exists yet", async () => {
@@ -345,7 +345,7 @@ describe("Responses Controller", () => {
         { token },
       );
 
-      const response = await responsesController.addComment(commentReq);
+      const response = await responses.addComment(commentReq);
 
       expect(response.status).toBe(303);
       const location = response.headers.get("Location");
@@ -354,13 +354,13 @@ describe("Responses Controller", () => {
       expect(decodeURIComponent(location)).toContain('"commented":true');
 
       // Verify response was created with comment
-      const responses = await connection`
+      const responsesData = await connection`
         SELECT * FROM responses WHERE survey_link_id IN (
           SELECT id FROM survey_links WHERE token = ${token}
         )
       `;
-      expect(responses).toHaveLength(1);
-      expect(responses[0].comment).toBe("Direct comment");
+      expect(responsesData).toHaveLength(1);
+      expect(responsesData[0].comment).toBe("Direct comment");
     });
 
     it("should redirect back for empty comment", async () => {
@@ -376,18 +376,18 @@ describe("Responses Controller", () => {
         { token },
       );
 
-      const response = await responsesController.addComment(commentReq);
+      const response = await responses.addComment(commentReq);
 
       expect(response.status).toBe(303);
       expect(response.headers.get("Location")).toBe(`/r/${token}`);
 
       // Should not create any response
-      const responses = await connection`
+      const responsesData = await connection`
         SELECT * FROM responses WHERE survey_link_id IN (
           SELECT id FROM survey_links WHERE token = ${token}
         )
       `;
-      expect(responses).toHaveLength(0);
+      expect(responsesData).toHaveLength(0);
     });
 
     it("should handle missing comment field", async () => {
@@ -403,7 +403,7 @@ describe("Responses Controller", () => {
         { token },
       );
 
-      const response = await responsesController.addComment(commentReq);
+      const response = await responses.addComment(commentReq);
 
       expect(response.status).toBe(303);
       expect(response.headers.get("Location")).toBe(`/r/${token}`);
@@ -419,7 +419,7 @@ describe("Responses Controller", () => {
         { token: "" },
       );
 
-      const response = await responsesController.addComment(req);
+      const response = await responses.addComment(req);
 
       expect(response.status).toBe(400);
       const text = await response.text();
@@ -436,7 +436,7 @@ describe("Responses Controller", () => {
         { token: "nonexistent" },
       );
 
-      const response = await responsesController.addComment(req);
+      const response = await responses.addComment(req);
 
       expect(response.status).toBe(404);
       const text = await response.text();
@@ -455,7 +455,7 @@ describe("Responses Controller", () => {
         { token: expiredToken },
       );
 
-      const response = await responsesController.addComment(req);
+      const response = await responses.addComment(req);
 
       expect(response.status).toBe(404);
       const text = await response.text();
@@ -485,19 +485,19 @@ describe("Responses Controller", () => {
         { token },
       );
 
-      const response = await responsesController.capture(req);
+      const response = await responses.capture(req);
 
       expect(response.status).toBe(303);
       expect(response.headers.get("Location")).toBe(
         "https://example.com/thanks",
       );
 
-      const responses = await connection`
+      const responsesData = await connection`
         SELECT * FROM responses WHERE survey_link_id IN (
           SELECT id FROM survey_links WHERE token = ${token}
         )
       `;
-      expect(responses).toHaveLength(1);
+      expect(responsesData).toHaveLength(1);
     });
 
     it("should redirect after comment for post_comment timing", async () => {
@@ -520,7 +520,7 @@ describe("Responses Controller", () => {
         { method: "GET" },
         { token },
       );
-      const captureResponse = await responsesController.capture(captureReq);
+      const captureResponse = await responses.capture(captureReq);
 
       expect(captureResponse.status).toBe(200);
       const html = await captureResponse.text();
@@ -535,7 +535,7 @@ describe("Responses Controller", () => {
         { token },
       );
 
-      const commentResponse = await responsesController.addComment(commentReq);
+      const commentResponse = await responses.addComment(commentReq);
 
       expect(commentResponse.status).toBe(303);
       expect(commentResponse.headers.get("Location")).toBe(
@@ -562,7 +562,7 @@ describe("Responses Controller", () => {
         { token },
       );
 
-      const response = await responsesController.capture(req);
+      const response = await responses.capture(req);
 
       expect(response.status).toBe(200);
       expect(response.headers.get("Content-Type")).toBe("text/html");
@@ -591,7 +591,7 @@ describe("Responses Controller", () => {
         { token },
       );
 
-      const response = await responsesController.capture(req);
+      const response = await responses.capture(req);
 
       expect(response.status).toBe(200);
       const html = await response.text();
@@ -627,7 +627,7 @@ describe("Responses Controller", () => {
         { token },
       );
 
-      const response = await responsesController.addComment(commentReq);
+      const response = await responses.addComment(commentReq);
 
       expect(response.status).toBe(303);
       const location = response.headers.get("Location");
@@ -648,7 +648,7 @@ describe("Responses Controller", () => {
         { token },
       );
 
-      const captureResponse = await responsesController.capture(captureReq);
+      const captureResponse = await responses.capture(captureReq);
       expect(captureResponse.status).toBe(200);
 
       // 2. Add comment
@@ -661,25 +661,24 @@ describe("Responses Controller", () => {
         { token },
       );
 
-      const commentResponse = await responsesController.addComment(commentReq);
+      const commentResponse = await responses.addComment(commentReq);
       expect(commentResponse.status).toBe(303);
 
       // 3. Verify final state
-      const responses = await connection`
+      const responsesData = await connection`
         SELECT r.*, sl.score, sl.subject_id 
         FROM responses r
         JOIN survey_links sl ON r.survey_link_id = sl.id
         WHERE sl.token = ${token}
       `;
 
-      expect(responses).toHaveLength(1);
-      expect(responses[0].score).toBe(10);
-      expect(responses[0].comment).toBe("Excellent experience!");
-      expect(responses[0].responded_at).toBeInstanceOf(Date);
+      expect(responsesData).toHaveLength(1);
+      expect(responsesData[0].score).toBe(10);
+      expect(responsesData[0].comment).toBe("Excellent experience!");
+      expect(responsesData[0].responded_at).toBeInstanceOf(Date);
 
       // 4. Try to capture again (should show already responded)
-      const secondCaptureResponse =
-        await responsesController.capture(captureReq);
+      const secondCaptureResponse = await responses.capture(captureReq);
       expect(secondCaptureResponse.status).toBe(200);
 
       const html = await secondCaptureResponse.text();
@@ -704,7 +703,7 @@ describe("Responses Controller", () => {
         { method: "GET" },
         { token },
       );
-      await responsesController.capture(captureReq);
+      await responses.capture(captureReq);
 
       // Check initial webhook timing
       const initialWebhook = await connection`
@@ -728,7 +727,7 @@ describe("Responses Controller", () => {
         { method: "POST", body: formData },
         { token },
       );
-      await responsesController.addComment(commentReq);
+      await responses.addComment(commentReq);
 
       // Check that webhook timer was refreshed
       const updatedWebhook = await connection`

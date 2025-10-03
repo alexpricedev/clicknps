@@ -21,18 +21,9 @@ import { Surveys } from "../../templates/surveys";
 import { redirect, render } from "../../utils/response";
 import { stateHelpers } from "../../utils/state";
 
-const {
-  parseState: parseSurveysState,
-  buildRedirectUrlWithState: buildRedirectUrlWithStateForSurvey,
-} = stateHelpers<SurveysState>();
-const {
-  parseState: parseNewState,
-  buildRedirectUrlWithState: buildRedirectUrlWithStateForSurveyNew,
-} = stateHelpers<SurveyNewState>();
-const {
-  parseState: parseMintState,
-  buildRedirectUrlWithState: buildRedirectUrlWithStateForSurveyMint,
-} = stateHelpers<SurveyMintState>();
+const surveysStateHelpers = stateHelpers<SurveysState>();
+const surveyNewStateHelpers = stateHelpers<SurveyNewState>();
+const surveyMintStateHelpers = stateHelpers<SurveyMintState>();
 
 export const surveys = {
   async index(req: BunRequest): Promise<Response> {
@@ -55,7 +46,7 @@ export const surveys = {
     }
 
     const url = new URL(req.url);
-    const state = parseSurveysState(url);
+    const state = surveysStateHelpers.parseState(url);
     const [surveysList, surveysStats] = await Promise.all([
       listSurveys(auth.business.id),
       getSurveyStats(auth.business.id),
@@ -78,7 +69,7 @@ export const surveys = {
 
     const auth = await getAuthContext(req);
     const url = new URL(req.url);
-    const state = parseNewState(url);
+    const state = surveyNewStateHelpers.parseState(url);
 
     let createCsrfTokenValue: string | null = null;
     let csrfToken: string | null = null;
@@ -128,7 +119,7 @@ export const surveys = {
       // Validate required fields
       if (!title || !surveyId || !ttlDaysStr) {
         return redirect(
-          buildRedirectUrlWithStateForSurveyNew("/surveys/new", {
+          surveyNewStateHelpers.buildRedirectUrlWithState("/surveys/new", {
             error: "Missing required fields",
           }),
         );
@@ -137,7 +128,7 @@ export const surveys = {
       // Validate title length
       if (title.length < 2 || title.length > 100) {
         return redirect(
-          buildRedirectUrlWithStateForSurveyNew("/surveys/new", {
+          surveyNewStateHelpers.buildRedirectUrlWithState("/surveys/new", {
             error: "Survey name must be between 2 and 100 characters",
           }),
         );
@@ -146,7 +137,7 @@ export const surveys = {
       // Validate survey ID format (lowercase letters, numbers, underscores, and hyphens)
       if (!/^[a-z0-9_-]+$/.test(surveyId)) {
         return redirect(
-          buildRedirectUrlWithStateForSurveyNew("/surveys/new", {
+          surveyNewStateHelpers.buildRedirectUrlWithState("/surveys/new", {
             error:
               "Survey ID must contain only lowercase letters, numbers, underscores, and hyphens",
           }),
@@ -157,7 +148,7 @@ export const surveys = {
       const ttlDays = Number.parseInt(ttlDaysStr, 10);
       if (Number.isNaN(ttlDays) || ttlDays < 1 || ttlDays > 365) {
         return redirect(
-          buildRedirectUrlWithStateForSurveyNew("/surveys/new", {
+          surveyNewStateHelpers.buildRedirectUrlWithState("/surveys/new", {
             error: "TTL days must be a number between 1 and 365",
           }),
         );
@@ -166,7 +157,7 @@ export const surveys = {
       // Validate description length if provided
       if (description && description.length > 500) {
         return redirect(
-          buildRedirectUrlWithStateForSurveyNew("/surveys/new", {
+          surveyNewStateHelpers.buildRedirectUrlWithState("/surveys/new", {
             error: "Description must be less than 500 characters",
           }),
         );
@@ -180,7 +171,7 @@ export const surveys = {
         redirectTiming !== "post_comment"
       ) {
         return redirect(
-          buildRedirectUrlWithStateForSurveyNew("/surveys/new", {
+          surveyNewStateHelpers.buildRedirectUrlWithState("/surveys/new", {
             error: "Invalid redirect timing option",
           }),
         );
@@ -190,7 +181,7 @@ export const surveys = {
       if (redirectTiming && redirectTiming !== "") {
         if (!redirectUrl || redirectUrl.length === 0) {
           return redirect(
-            buildRedirectUrlWithStateForSurveyNew("/surveys/new", {
+            surveyNewStateHelpers.buildRedirectUrlWithState("/surveys/new", {
               error:
                 "Redirect URL is required when redirect timing is selected",
             }),
@@ -200,7 +191,7 @@ export const surveys = {
           new URL(redirectUrl);
         } catch {
           return redirect(
-            buildRedirectUrlWithStateForSurveyNew("/surveys/new", {
+            surveyNewStateHelpers.buildRedirectUrlWithState("/surveys/new", {
               error: "Invalid redirect URL format",
             }),
           );
@@ -216,7 +207,7 @@ export const surveys = {
       const existingSurvey = await findSurvey(auth.business.id, surveyId);
       if (existingSurvey) {
         return redirect(
-          buildRedirectUrlWithStateForSurveyNew("/surveys/new", {
+          surveyNewStateHelpers.buildRedirectUrlWithState("/surveys/new", {
             error: "A survey with this ID already exists",
           }),
         );
@@ -245,11 +236,11 @@ export const surveys = {
       };
 
       return redirect(
-        buildRedirectUrlWithStateForSurvey("/surveys", successState),
+        surveysStateHelpers.buildRedirectUrlWithState("/surveys", successState),
       );
     } catch (_error) {
       return redirect(
-        buildRedirectUrlWithStateForSurveyNew("/surveys/new", {
+        surveyNewStateHelpers.buildRedirectUrlWithState("/surveys/new", {
           error: "Internal server error",
         }),
       );
@@ -291,7 +282,7 @@ export const surveys = {
       csrfToken = logoutToken;
     }
 
-    const state = parseMintState(new URL(req.url));
+    const state = surveyMintStateHelpers.parseState(new URL(req.url));
 
     return render(
       <SurveyMint
@@ -325,19 +316,25 @@ export const surveys = {
       // Validate required fields
       if (!subjectId) {
         return redirect(
-          buildRedirectUrlWithStateForSurveyMint(`/surveys/${surveyId}/mint`, {
-            error: "Subject ID is required",
-          }),
+          surveyMintStateHelpers.buildRedirectUrlWithState(
+            `/surveys/${surveyId}/mint`,
+            {
+              error: "Subject ID is required",
+            },
+          ),
         );
       }
 
       // Validate subject ID format
       if (!/^[a-zA-Z0-9_-]+$/.test(subjectId)) {
         return redirect(
-          buildRedirectUrlWithStateForSurveyMint(`/surveys/${surveyId}/mint`, {
-            error:
-              "Subject ID must contain only letters, numbers, underscores, and hyphens",
-          }),
+          surveyMintStateHelpers.buildRedirectUrlWithState(
+            `/surveys/${surveyId}/mint`,
+            {
+              error:
+                "Subject ID must contain only letters, numbers, underscores, and hyphens",
+            },
+          ),
         );
       }
 
@@ -347,7 +344,7 @@ export const surveys = {
         ttlDays = Number.parseInt(ttlDaysStr, 10);
         if (Number.isNaN(ttlDays) || ttlDays < 1 || ttlDays > 365) {
           return redirect(
-            buildRedirectUrlWithStateForSurveyMint(
+            surveyMintStateHelpers.buildRedirectUrlWithState(
               `/surveys/${surveyId}/mint`,
               {
                 error: "TTL days must be a number between 1 and 365",
@@ -366,9 +363,12 @@ export const surveys = {
       const survey = await findSurvey(auth.business.id, surveyId);
       if (!survey) {
         return redirect(
-          buildRedirectUrlWithStateForSurveyMint(`/surveys/${surveyId}/mint`, {
-            error: "Survey not found",
-          }),
+          surveyMintStateHelpers.buildRedirectUrlWithState(
+            `/surveys/${surveyId}/mint`,
+            {
+              error: "Survey not found",
+            },
+          ),
         );
       }
 
@@ -387,7 +387,7 @@ export const surveys = {
       };
 
       return redirect(
-        buildRedirectUrlWithStateForSurveyMint(
+        surveyMintStateHelpers.buildRedirectUrlWithState(
           `/surveys/${surveyId}/mint`,
           successState,
         ),
@@ -399,16 +399,22 @@ export const surveys = {
         error.message === "Links already exist for this subject"
       ) {
         return redirect(
-          buildRedirectUrlWithStateForSurveyMint(`/surveys/${surveyId}/mint`, {
-            error: "Links already exist for this subject",
-          }),
+          surveyMintStateHelpers.buildRedirectUrlWithState(
+            `/surveys/${surveyId}/mint`,
+            {
+              error: "Links already exist for this subject",
+            },
+          ),
         );
       }
       // Generic error for everything else
       return redirect(
-        buildRedirectUrlWithStateForSurveyMint(`/surveys/${surveyId}/mint`, {
-          error: "Internal server error",
-        }),
+        surveyMintStateHelpers.buildRedirectUrlWithState(
+          `/surveys/${surveyId}/mint`,
+          {
+            error: "Internal server error",
+          },
+        ),
       );
     }
   },

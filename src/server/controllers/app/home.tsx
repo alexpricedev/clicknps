@@ -7,9 +7,13 @@ import {
 } from "../../services/analytics";
 import { getSessionIdFromCookies } from "../../services/auth";
 import { createCsrfToken } from "../../services/csrf";
+import type { DashboardState } from "../../templates/dashboard";
 import { Dashboard } from "../../templates/dashboard";
 import { Home } from "../../templates/home";
 import { render } from "../../utils/response";
+import { stateHelpers } from "../../utils/state";
+
+const dashboardStateHelpers = stateHelpers<DashboardState>();
 
 export const home = {
   async index(req: Request): Promise<Response> {
@@ -25,6 +29,9 @@ export const home = {
     }
 
     if (auth.isAuthenticated && auth.business) {
+      const url = new URL(req.url);
+      const state = dashboardStateHelpers.parseState(url);
+
       const [dashboardStats, latestResponses, weeklyNpsData] =
         await Promise.all([
           getDashboardStats(auth.business.id),
@@ -39,6 +46,7 @@ export const home = {
           stats={dashboardStats}
           latestResponses={latestResponses}
           weeklyNpsData={weeklyNpsData}
+          state={state}
         />,
       );
     }

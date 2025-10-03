@@ -55,14 +55,9 @@ type BaseLayoutProps = {
  * Minimal layout without navigation or header
  * Use for: Authentication pages, error pages, standalone forms
  */
-export function BaseLayout({
-  title,
-  name,
-  children,
-  theme = "dracula",
-}: BaseLayoutProps) {
+export function BaseLayout({ title, name, children }: BaseLayoutProps) {
   return (
-    <html lang="en" data-theme={theme}>
+    <html lang="en" data-theme="night">
       <head>
         <meta charSet="utf-8" />
         <meta

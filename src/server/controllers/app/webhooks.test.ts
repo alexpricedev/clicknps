@@ -45,7 +45,7 @@ mock.module("../../services/webhooks", () => ({
   getRecentWebhookDeliveries: mockGetRecentWebhookDeliveries,
 }));
 
-import { settings } from "./settings";
+import { webhooks } from "./webhooks";
 
 describe("Webhook Settings Controller", () => {
   let mockEndpoint: ReturnType<typeof mockWebhookEndpoint>;
@@ -89,7 +89,7 @@ describe("Webhook Settings Controller", () => {
           headers: { Cookie: cookieHeader },
         },
       );
-      const response = await settings.webhooks(request);
+      const response = await webhooks.index(request);
       const html = await response.text();
 
       expect(mockGetWebhookSettings).toHaveBeenCalledWith(businessId);
@@ -104,7 +104,7 @@ describe("Webhook Settings Controller", () => {
       const request = createBunRequest(
         "http://localhost:3000/settings/webhooks",
       );
-      const response = await settings.webhooks(request);
+      const response = await webhooks.index(request);
 
       expect(response.status).toBe(303);
       expect(response.headers.get("location")).toBe("/login");
@@ -126,7 +126,7 @@ describe("Webhook Settings Controller", () => {
           headers: { Cookie: cookieHeader },
         },
       );
-      const response = await settings.webhooks(request);
+      const response = await webhooks.index(request);
       const html = await response.text();
 
       expect(html).toContain("https://example.com/webhook");
@@ -156,7 +156,7 @@ describe("Webhook Settings Controller", () => {
           headers: { Cookie: cookieHeader },
         },
       );
-      const response = await settings.webhooks(request);
+      const response = await webhooks.index(request);
       const html = await response.text();
 
       expect(html).toContain("Recent Webhook Deliveries");
@@ -200,7 +200,7 @@ describe("Webhook Settings Controller", () => {
         },
       );
 
-      const response = await settings.webhooks(request);
+      const response = await webhooks.index(request);
       const html = await response.text();
 
       expect(mockUpdateWebhookSettings).toHaveBeenCalledWith(
@@ -247,7 +247,7 @@ describe("Webhook Settings Controller", () => {
         },
       );
 
-      const response = await settings.webhooks(request);
+      const response = await webhooks.index(request);
       const html = await response.text();
 
       expect(mockUpdateWebhookSettings).toHaveBeenCalledWith(
@@ -289,7 +289,7 @@ describe("Webhook Settings Controller", () => {
         },
       );
 
-      const response = await settings.webhooks(request);
+      const response = await webhooks.index(request);
       const html = await response.text();
 
       expect(mockUpdateWebhookSettings).not.toHaveBeenCalled();
@@ -325,7 +325,7 @@ describe("Webhook Settings Controller", () => {
         },
       );
 
-      const response = await settings.webhooks(request);
+      const response = await webhooks.index(request);
       const html = await response.text();
 
       expect(mockUpdateWebhookSettings).not.toHaveBeenCalled();
@@ -356,7 +356,7 @@ describe("Webhook Settings Controller", () => {
         },
       );
 
-      const response = await settings.webhooks(request);
+      const response = await webhooks.index(request);
       const html = await response.text();
 
       expect(mockUpdateWebhookSettings).not.toHaveBeenCalled();
@@ -401,7 +401,7 @@ describe("Webhook Settings Controller", () => {
         },
       );
 
-      const response = await settings.webhooks(request);
+      const response = await webhooks.index(request);
       const html = await response.text();
 
       expect(mockSendTestWebhook).toHaveBeenCalledWith(businessId);
@@ -445,7 +445,7 @@ describe("Webhook Settings Controller", () => {
         },
       );
 
-      const response = await settings.webhooks(request);
+      const response = await webhooks.index(request);
       const html = await response.text();
 
       expect(html).toContain("Test Webhook Failed");
@@ -483,7 +483,7 @@ describe("Webhook Settings Controller", () => {
         },
       );
 
-      const response = await settings.webhooks(request);
+      const response = await webhooks.index(request);
       const html = await response.text();
 
       expect(mockSendTestWebhook).toHaveBeenCalledWith(businessId);
@@ -509,7 +509,7 @@ describe("Webhook Settings Controller", () => {
         },
       );
 
-      const response = await settings.webhooks(request);
+      const response = await webhooks.index(request);
 
       expect(response.status).toBe(303);
       expect(response.headers.get("location")).toBe("/login");
@@ -538,7 +538,7 @@ describe("Webhook Settings Controller", () => {
         },
       );
 
-      const response = await settings.webhooks(request);
+      const response = await webhooks.index(request);
       const html = await response.text();
 
       expect(html).toContain("Invalid request");
@@ -572,7 +572,7 @@ describe("Webhook Settings Controller", () => {
         },
       );
 
-      const response = await settings.webhooks(request);
+      const response = await webhooks.index(request);
       const html = await response.text();
 
       expect(html).toContain("Invalid action");
@@ -593,7 +593,7 @@ describe("Webhook Settings Controller", () => {
           headers: { Cookie: cookieHeader },
         },
       );
-      await settings.webhooks(request);
+      await webhooks.index(request);
 
       expect(mockGetWebhookSettings).toHaveBeenCalledWith(businessId);
       expect(mockGetRecentWebhookDeliveries).toHaveBeenCalledWith(businessId);
@@ -632,7 +632,7 @@ describe("Webhook Settings Controller", () => {
         },
       );
 
-      await settings.webhooks(request);
+      await webhooks.index(request);
 
       expect(mockUpdateWebhookSettings).toHaveBeenCalledWith(
         businessId,

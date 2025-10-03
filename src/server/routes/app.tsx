@@ -1,16 +1,16 @@
 import {
   about,
-  dashboard,
+  apiKeys,
   docs,
-  examples,
   home,
+  invites,
   pricing,
   profile,
-  responsesController,
-  settings,
+  responses,
   support,
   surveys,
   team,
+  webhooks,
 } from "../controllers/app";
 import { callback, login, logout, signup } from "../controllers/auth";
 import { createRouteHandler } from "../utils/route-handler";
@@ -20,14 +20,6 @@ export const appRoutes = {
   "/about": about.index,
   "/pricing": pricing.index,
   "/docs": docs.index,
-  "/dashboard": dashboard.index,
-  "/examples": createRouteHandler({
-    GET: examples.index,
-    POST: examples.create,
-  }),
-  "/examples/:id/delete": createRouteHandler({
-    POST: examples.destroy,
-  }),
   "/surveys": createRouteHandler({
     GET: surveys.index,
   }),
@@ -43,19 +35,26 @@ export const appRoutes = {
     GET: surveys.responses,
   }),
   "/settings/api-keys": createRouteHandler({
-    GET: settings.apiKeys,
-    POST: settings.apiKeys,
+    GET: apiKeys.index,
+    POST: apiKeys.index,
   }),
   "/settings/webhooks": createRouteHandler({
-    GET: settings.webhooks,
-    POST: settings.webhooks,
+    GET: webhooks.index,
+    POST: webhooks.index,
   }),
   "/settings/profile": createRouteHandler({
     GET: profile.index,
     POST: profile.update,
   }),
-  "/settings/team": team.index,
+  "/settings/team": createRouteHandler({
+    GET: team.index,
+    POST: team.index,
+  }),
   "/settings/support": support.index,
+  "/invites/accept": createRouteHandler({
+    GET: invites.acceptForm,
+    POST: invites.accept,
+  }),
   "/login": createRouteHandler({
     GET: login.index,
     POST: login.create,
@@ -68,8 +67,8 @@ export const appRoutes = {
   "/auth/logout": createRouteHandler({
     POST: logout.create,
   }),
-  "/r/:token": responsesController.capture,
+  "/r/:token": responses.capture,
   "/r/:token/comment": createRouteHandler({
-    POST: responsesController.addComment,
+    POST: responses.addComment,
   }),
 };

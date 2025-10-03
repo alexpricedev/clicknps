@@ -1,3 +1,4 @@
+import { isAdminOrOwner } from "../middleware/access";
 import type { AuthContext } from "../middleware/auth";
 import { CsrfField } from "./csrf-field";
 
@@ -13,11 +14,11 @@ const authNavLinks = [
 ];
 
 const settingsLinks = [
-  { href: "/settings/api-keys", label: "API Keys" },
-  { href: "/settings/webhooks", label: "Webhooks" },
-  { href: "/settings/profile", label: "Profile" },
-  { href: "/settings/team", label: "Team" },
-  { href: "/settings/support", label: "Support" },
+  { href: "/settings/api-keys", label: "API Keys", adminOnly: true },
+  { href: "/settings/webhooks", label: "Webhooks", adminOnly: true },
+  { href: "/settings/profile", label: "Profile", adminOnly: false },
+  { href: "/settings/team", label: "Team", adminOnly: true },
+  { href: "/settings/support", label: "Support", adminOnly: false },
 ];
 
 type NavProps = {
@@ -89,11 +90,16 @@ export const Nav = ({ page, auth, csrfToken }: NavProps) => (
               </svg>
             </button>
             <ul className="menu dropdown-content bg-base-300 rounded-b-box z-[1] mt-2 w-40 p-2 shadow-sm">
-              {settingsLinks.map(({ href, label }) => (
-                <li key={href}>
-                  <a href={href}>{label}</a>
-                </li>
-              ))}
+              {settingsLinks
+                .filter(
+                  ({ adminOnly }) =>
+                    !adminOnly || (auth && isAdminOrOwner(auth)),
+                )
+                .map(({ href, label }) => (
+                  <li key={href}>
+                    <a href={href}>{label}</a>
+                  </li>
+                ))}
               <li>
                 <form method="POST" action="/auth/logout">
                   <CsrfField token={csrfToken || null} />

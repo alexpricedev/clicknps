@@ -8,10 +8,7 @@ import { Profile } from "../../templates/profile";
 import { redirect, render } from "../../utils/response";
 import { stateHelpers } from "../../utils/state";
 
-const {
-  parseState: parseProfileState,
-  buildRedirectUrlWithState: buildRedirectUrlWithProfileState,
-} = stateHelpers<ProfileState>();
+const profileStateHelpers = stateHelpers<ProfileState>();
 
 export const profile = {
   async index(req: Request): Promise<Response> {
@@ -20,7 +17,7 @@ export const profile = {
 
     const auth = await getAuthContext(req);
     const url = new URL(req.url);
-    const state = parseProfileState(url);
+    const state = profileStateHelpers.parseState(url);
 
     const cookieHeader = req.headers.get("cookie");
     const sessionId = getSessionIdFromCookies(cookieHeader);
@@ -68,7 +65,7 @@ export const profile = {
 
       if (!firstName || !lastName) {
         return redirect(
-          buildRedirectUrlWithProfileState("/settings/profile", {
+          profileStateHelpers.buildRedirectUrlWithState("/settings/profile", {
             error: "First name and last name are required",
           }),
         );
@@ -76,7 +73,7 @@ export const profile = {
 
       if (firstName.length < 1 || firstName.length > 100) {
         return redirect(
-          buildRedirectUrlWithProfileState("/settings/profile", {
+          profileStateHelpers.buildRedirectUrlWithState("/settings/profile", {
             error: "First name must be between 1 and 100 characters",
           }),
         );
@@ -84,7 +81,7 @@ export const profile = {
 
       if (lastName.length < 1 || lastName.length > 100) {
         return redirect(
-          buildRedirectUrlWithProfileState("/settings/profile", {
+          profileStateHelpers.buildRedirectUrlWithState("/settings/profile", {
             error: "Last name must be between 1 and 100 characters",
           }),
         );
@@ -96,13 +93,13 @@ export const profile = {
       });
 
       return redirect(
-        buildRedirectUrlWithProfileState("/settings/profile", {
+        profileStateHelpers.buildRedirectUrlWithState("/settings/profile", {
           success: true,
         }),
       );
     } catch (_error) {
       return redirect(
-        buildRedirectUrlWithProfileState("/settings/profile", {
+        profileStateHelpers.buildRedirectUrlWithState("/settings/profile", {
           error: "Internal server error",
         }),
       );

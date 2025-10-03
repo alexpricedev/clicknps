@@ -1,3 +1,4 @@
+import { Alert } from "@server/components/alert";
 import { Layout } from "@server/components/layouts";
 import type { AuthContext } from "@server/middleware/auth";
 import type {
@@ -5,6 +6,12 @@ import type {
   LatestResponse,
   WeeklyNpsData,
 } from "@server/services/analytics";
+import { CheckCircle } from "lucide-react";
+
+export interface DashboardState {
+  success?: string;
+  error?: string;
+}
 
 type DashboardProps = {
   auth: AuthContext;
@@ -12,6 +19,7 @@ type DashboardProps = {
   stats: DashboardStats;
   latestResponses: LatestResponse[];
   weeklyNpsData: WeeklyNpsData[];
+  state?: DashboardState;
 };
 
 const DeltaIndicator = ({ delta }: { delta: number }) => {
@@ -165,6 +173,7 @@ export const Dashboard = ({
   stats,
   latestResponses,
   weeklyNpsData,
+  state,
 }: DashboardProps) => (
   <Layout title="Dashboard" name="dashboard" auth={auth} csrfToken={csrfToken}>
     <div className="space-y-8">
@@ -174,6 +183,14 @@ export const Dashboard = ({
           Overview of your NPS surveys and customer feedback
         </p>
       </div>
+
+      {state?.success && (
+        <Alert
+          type="success"
+          icon={<CheckCircle className="w-6 h-6" />}
+          title={state.success}
+        />
+      )}
 
       <div className="card bg-base-200 shadow-sm">
         <div className="card-body p-0">

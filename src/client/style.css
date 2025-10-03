@@ -1,7 +1,6 @@
 @import "tailwindcss";
 
 /* Page styles */
-@import "./pages/home.css";
 @import "./pages/about.css";
 
 @plugin "daisyui" {

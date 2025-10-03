@@ -1,12 +1,12 @@
 export { about } from "./about";
-export { dashboard } from "./dashboard";
+export { apiKeys } from "./api-keys";
 export { docs } from "./docs";
-export { examples } from "./examples";
 export { home } from "./home";
+export { invites } from "./invites";
 export { pricing } from "./pricing";
 export { profile } from "./profile";
-export { responsesController } from "./responses";
-export { settings } from "./settings";
+export { responses } from "./responses";
 export { support } from "./support";
 export { surveys } from "./surveys";
 export { team } from "./team";
+export { webhooks } from "./webhooks";
