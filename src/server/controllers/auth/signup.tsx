@@ -6,8 +6,7 @@ import { Signup } from "../../templates/signup";
 import { redirect, render } from "../../utils/response";
 import { stateHelpers } from "../../utils/state";
 
-const { parseState, buildRedirectUrlWithState: redirectWithState } =
-  stateHelpers<SignupState>();
+const signupStateHelpers = stateHelpers<SignupState>();
 
 export const signup = {
   async index(req: Request): Promise<Response> {
@@ -15,7 +14,7 @@ export const signup = {
     if (authRedirect) return authRedirect;
 
     const url = new URL(req.url);
-    const state = parseState(url);
+    const state = signupStateHelpers.parseState(url);
 
     return render(<Signup state={state} />);
   },
@@ -27,7 +26,7 @@ export const signup = {
 
     if (!email || !email.includes("@")) {
       return redirect(
-        redirectWithState("/signup", {
+        signupStateHelpers.buildRedirectUrlWithState("/signup", {
           validationError: true,
           error: "Invalid email address",
         }),
@@ -36,7 +35,7 @@ export const signup = {
 
     if (!businessName || businessName.trim().length === 0) {
       return redirect(
-        redirectWithState("/signup", {
+        signupStateHelpers.buildRedirectUrlWithState("/signup", {
           validationError: true,
           error: "Business name is required",
         }),
@@ -48,7 +47,7 @@ export const signup = {
 
       if (existingUser) {
         return redirect(
-          redirectWithState("/signup", {
+          signupStateHelpers.buildRedirectUrlWithState("/signup", {
             validationError: true,
             error:
               "An account with this email already exists. Please sign in instead.",
@@ -71,10 +70,14 @@ export const signup = {
         expiryMinutes: 15,
       });
 
-      return redirect(redirectWithState("/signup", { emailSent: true }));
+      return redirect(
+        signupStateHelpers.buildRedirectUrlWithState("/signup", {
+          emailSent: true,
+        }),
+      );
     } catch {
       return redirect(
-        redirectWithState("/signup", {
+        signupStateHelpers.buildRedirectUrlWithState("/signup", {
           validationError: true,
           error: "Something went wrong. Please try again.",
         }),

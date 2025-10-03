@@ -1,6 +1,7 @@
 // Page scripts
 import { init as initDashboard } from "@client/pages/dashboard";
 import { init as initSurveyNew } from "@client/pages/survey-new";
+import { init as initTeam } from "@client/pages/team";
 import { init as initWebhooks } from "@client/pages/webhooks";
 
 const page = document.body.dataset.page;
@@ -8,6 +9,7 @@ const page = document.body.dataset.page;
 const pages: Record<string, () => void> = {
   dashboard: initDashboard,
   "survey-new": initSurveyNew,
+  team: initTeam,
   webhooks: initWebhooks,
 };
 

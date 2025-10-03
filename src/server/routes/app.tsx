@@ -4,6 +4,7 @@ import {
   docs,
   examples,
   home,
+  invites,
   pricing,
   profile,
   responsesController,
@@ -54,8 +55,15 @@ export const appRoutes = {
     GET: profile.index,
     POST: profile.update,
   }),
-  "/settings/team": team.index,
+  "/settings/team": createRouteHandler({
+    GET: team.index,
+    POST: team.index,
+  }),
   "/settings/support": support.index,
+  "/invites/accept": createRouteHandler({
+    GET: invites.acceptForm,
+    POST: invites.accept,
+  }),
   "/login": createRouteHandler({
     GET: login.index,
     POST: login.create,

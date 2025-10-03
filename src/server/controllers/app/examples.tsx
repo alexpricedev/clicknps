@@ -13,8 +13,7 @@ import { Examples } from "../../templates/examples";
 import { redirect, render } from "../../utils/response";
 import { stateHelpers } from "../../utils/state";
 
-const { parseState, buildRedirectUrlWithState: redirectWithState } =
-  stateHelpers<ExamplesState>();
+const examplesStateHelpers = stateHelpers<ExamplesState>();
 
 export const examples = {
   async index(req: BunRequest): Promise<Response> {
@@ -32,7 +31,7 @@ export const examples = {
     }
 
     const url = new URL(req.url);
-    const state = parseState(url);
+    const state = examplesStateHelpers.parseState(url);
 
     let createCsrfTokenValue: string | null = null;
     const deleteCsrfTokens: Record<number, string> = {};
@@ -85,12 +84,18 @@ export const examples = {
 
     // Early return for validation failures
     if (!name || name.trim().length < 2) {
-      return redirect(redirectWithState("/examples", {}));
+      return redirect(
+        examplesStateHelpers.buildRedirectUrlWithState("/examples", {}),
+      );
     }
 
     // Happy path - successful form submission
     await createExample(name.trim());
-    return redirect(redirectWithState("/examples", { submitted: true }));
+    return redirect(
+      examplesStateHelpers.buildRedirectUrlWithState("/examples", {
+        submitted: true,
+      }),
+    );
   },
 
   async destroy<T extends `${string}:id${string}`>(
@@ -123,9 +128,15 @@ export const examples = {
     const deleted = await deleteExample(id);
 
     if (!deleted) {
-      return redirect(redirectWithState("/examples", {}));
+      return redirect(
+        examplesStateHelpers.buildRedirectUrlWithState("/examples", {}),
+      );
     }
 
-    return redirect(redirectWithState("/examples", { deleted: true }));
+    return redirect(
+      examplesStateHelpers.buildRedirectUrlWithState("/examples", {
+        deleted: true,
+      }),
+    );
   },
 };

@@ -1,3 +1,4 @@
+import { isAdminOrOwner } from "../../middleware/access";
 import { getAuthContext, requireAuth } from "../../middleware/auth";
 import {
   createApiKey,
@@ -16,7 +17,7 @@ import {
 import { ApiKeysSettings } from "../../templates/settings-api-keys";
 import type { WebhookState } from "../../templates/settings-webhooks";
 import { WebhookSettings } from "../../templates/settings-webhooks";
-import { render } from "../../utils/response";
+import { redirect, render } from "../../utils/response";
 
 export interface ApiKeysState {
   created?: {
@@ -47,6 +48,11 @@ export const settings = {
       return new Response("Business not found", { status: 404 });
     }
 
+    // Check admin access
+    if (!isAdminOrOwner(auth)) {
+      return redirect("/");
+    }
+
     if (req.method === "POST") {
       return await handleApiKeyActions(req, auth.business.id);
     }
@@ -71,6 +77,11 @@ export const settings = {
 
     if (!auth.business) {
       return new Response("Business not found", { status: 404 });
+    }
+
+    // Check admin access
+    if (!isAdminOrOwner(auth)) {
+      return redirect("/");
     }
 
     if (req.method === "POST") {
