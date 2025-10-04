@@ -31,7 +31,8 @@ type SurveysProps = {
 export const Surveys = (props: SurveysProps): JSX.Element => {
   return (
     <Layout
-      title="Surveys"
+      title="Surveys - ClickNPS"
+      description="Manage your NPS surveys, view responses, and generate survey links for different subjects."
       name="surveys"
       auth={props.auth}
       csrfToken={props.csrfToken}

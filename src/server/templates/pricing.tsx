@@ -7,7 +7,13 @@ type PricingProps = {
 };
 
 export const Pricing = ({ auth, csrfToken }: PricingProps) => (
-  <Layout title="Pricing" name="pricing" auth={auth} csrfToken={csrfToken}>
+  <Layout
+    title="Pricing - ClickNPS"
+    description="View our flexible pricing plans for NPS survey tools. Find the right plan that scales with your business."
+    name="pricing"
+    auth={auth}
+    csrfToken={csrfToken}
+  >
     <div className="hero min-h-screen bg-base-200">
       <div className="hero-content text-center">
         <div className="max-w-md">

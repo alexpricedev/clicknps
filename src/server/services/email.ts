@@ -29,6 +29,14 @@ export interface TeamInviteEmailData {
   invitedByName?: string;
 }
 
+export interface SupportRequestEmailData {
+  userEmail: string;
+  userName: string;
+  businessName: string;
+  subject: string;
+  message: string;
+}
+
 export class EmailService {
   constructor(private provider: EmailProvider) {}
 
@@ -63,6 +71,27 @@ export class EmailService {
       subject: `You've been invited to join ${data.businessName} on ClickNPS`,
       html: this.renderTeamInviteTemplate(data),
       text: this.renderTeamInviteText(data),
+    };
+
+    await this.provider.send(message);
+  }
+
+  async sendSupportRequest(data: SupportRequestEmailData): Promise<void> {
+    const fromEmail = process.env.FROM_EMAIL || "test@test.com";
+    const fromName = process.env.FROM_NAME || "Test";
+
+    const message: EmailMessage = {
+      to: {
+        email: "support@clicknps.com",
+        name: "ClickNPS Support",
+      },
+      from: {
+        email: fromEmail,
+        name: fromName,
+      },
+      subject: `Support Request: ${data.subject}`,
+      html: this.renderSupportRequestTemplate(data),
+      text: this.renderSupportRequestText(data),
     };
 
     await this.provider.send(message);
@@ -188,6 +217,61 @@ Click the link below to accept the invitation:
 ${data.inviteUrl}
 
 If you didn't expect this invitation, you can safely ignore it.`;
+  }
+
+  private renderSupportRequestTemplate(data: SupportRequestEmailData): string {
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Support Request from ${data.businessName}</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333;">
+  <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+    <div style="text-align: center; margin-bottom: 40px;">
+      <h1 style="color: #2563eb; margin: 0;">${process.env.APP_NAME || "ClickNPS"}</h1>
+    </div>
+
+    <div style="background: #f8fafc; padding: 30px; border-radius: 8px; margin-bottom: 30px;">
+      <h2 style="margin-top: 0; color: #1f2937;">Support Request</h2>
+
+      <div style="background: white; padding: 20px; border-radius: 6px; margin-bottom: 20px;">
+        <p style="margin: 0 0 10px 0; color: #6b7280; font-size: 14px;"><strong>From:</strong></p>
+        <p style="margin: 0; color: #1f2937;">${data.userName} (${data.userEmail})</p>
+      </div>
+
+      <div style="background: white; padding: 20px; border-radius: 6px; margin-bottom: 20px;">
+        <p style="margin: 0 0 10px 0; color: #6b7280; font-size: 14px;"><strong>Business:</strong></p>
+        <p style="margin: 0; color: #1f2937;">${data.businessName}</p>
+      </div>
+
+      <div style="background: white; padding: 20px; border-radius: 6px; margin-bottom: 20px;">
+        <p style="margin: 0 0 10px 0; color: #6b7280; font-size: 14px;"><strong>Subject:</strong></p>
+        <p style="margin: 0; color: #1f2937;">${data.subject}</p>
+      </div>
+
+      <div style="background: white; padding: 20px; border-radius: 6px;">
+        <p style="margin: 0 0 10px 0; color: #6b7280; font-size: 14px;"><strong>Message:</strong></p>
+        <p style="margin: 0; color: #1f2937; white-space: pre-wrap;">${data.message}</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+  }
+
+  private renderSupportRequestText(data: SupportRequestEmailData): string {
+    return `Support Request from ${process.env.APP_NAME || "ClickNPS"}
+
+From: ${data.userName} (${data.userEmail})
+Business: ${data.businessName}
+
+Subject: ${data.subject}
+
+Message:
+${data.message}`;
   }
 }
 

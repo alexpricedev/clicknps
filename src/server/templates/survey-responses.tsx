@@ -34,7 +34,8 @@ const formatDate = (date: Date): string => {
 export const SurveyResponses = (props: SurveyResponsesProps): JSX.Element => {
   return (
     <Layout
-      title="Survey Responses"
+      title="Survey Responses - ClickNPS"
+      description="View and analyze all customer responses and feedback for your NPS survey."
       name="survey-responses"
       auth={props.auth}
       csrfToken={props.csrfToken}

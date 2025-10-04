@@ -50,7 +50,10 @@ export const appRoutes = {
     GET: team.index,
     POST: team.index,
   }),
-  "/settings/support": support.index,
+  "/settings/support": createRouteHandler({
+    GET: support.index,
+    POST: support.submit,
+  }),
   "/invites/accept": createRouteHandler({
     GET: invites.acceptForm,
     POST: invites.accept,

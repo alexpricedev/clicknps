@@ -21,7 +21,11 @@ export type InviteAcceptProps = {
 export const InviteAccept = (props: InviteAcceptProps): JSX.Element => {
   if (!props.invite || !props.business) {
     return (
-      <BaseLayout title="Invalid Invite" name="invite-accept">
+      <BaseLayout
+        title="Invalid Invite - ClickNPS"
+        description="This invitation link is invalid or has expired."
+        name="invite-accept"
+      >
         <div className="min-h-screen flex items-center justify-center bg-base-300 p-4">
           <div className="card bg-neutral text-neutral-content max-w-md w-full">
             <div className="card-body">
@@ -53,7 +57,11 @@ export const InviteAccept = (props: InviteAcceptProps): JSX.Element => {
   }
 
   return (
-    <BaseLayout title="Accept Invitation" name="invite-accept">
+    <BaseLayout
+      title="Accept Invitation - ClickNPS"
+      description="Accept your team invitation to join a ClickNPS business account."
+      name="invite-accept"
+    >
       <div className="min-h-screen flex items-center justify-center bg-base-300 p-4">
         <div className="card bg-neutral text-neutral-content max-w-2xl w-full">
           <div className="card-body">

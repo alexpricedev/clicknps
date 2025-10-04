@@ -7,7 +7,13 @@ type AboutProps = {
 };
 
 export const About = ({ auth, csrfToken }: AboutProps) => (
-  <Layout title="About" name="about" auth={auth} csrfToken={csrfToken}>
+  <Layout
+    title="About - ClickNPS"
+    description="Learn more about ClickNPS and how we help businesses measure customer satisfaction."
+    name="about"
+    auth={auth}
+    csrfToken={csrfToken}
+  >
     <h1>About Page</h1>
     <section className="card">
       <p>

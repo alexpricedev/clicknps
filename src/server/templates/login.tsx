@@ -14,7 +14,11 @@ export interface LoginProps {
 
 export const Login = ({ state }: LoginProps) => {
   return (
-    <BaseLayout title="Login - ClickNPS" name="login">
+    <BaseLayout
+      title="Login - ClickNPS"
+      description="Sign in to your ClickNPS account to access your NPS surveys and customer feedback."
+      name="login"
+    >
       <main className="min-h-screen flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="w-full max-w-md mx-auto">
           <div className="text-center mb-8">

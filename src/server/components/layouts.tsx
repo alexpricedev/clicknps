@@ -5,6 +5,7 @@ import { Nav } from "./nav";
 
 type LayoutProps = {
   title: string;
+  description: string;
   name: string;
   children: React.ReactNode;
   auth?: AuthContext;
@@ -17,6 +18,7 @@ type LayoutProps = {
  */
 export function Layout({
   title,
+  description,
   name,
   children,
   auth,
@@ -31,6 +33,7 @@ export function Layout({
           content="width=device-width, initial-scale=1, viewport-fit=cover"
         />
         <title>{title}</title>
+        <meta name="description" content={description} />
         <link rel="stylesheet" href="/assets/main.css" />
       </head>
       <body data-page={name}>
@@ -46,6 +49,7 @@ export function Layout({
 
 type BaseLayoutProps = {
   title: string;
+  description: string;
   name: string;
   children: React.ReactNode;
   theme?: string;
@@ -55,7 +59,12 @@ type BaseLayoutProps = {
  * Minimal layout without navigation or header
  * Use for: Authentication pages, error pages, standalone forms
  */
-export function BaseLayout({ title, name, children }: BaseLayoutProps) {
+export function BaseLayout({
+  title,
+  description,
+  name,
+  children,
+}: BaseLayoutProps) {
   return (
     <html lang="en" data-theme="night">
       <head>
@@ -65,6 +74,7 @@ export function BaseLayout({ title, name, children }: BaseLayoutProps) {
           content="width=device-width, initial-scale=1, viewport-fit=cover"
         />
         <title>{title}</title>
+        <meta name="description" content={description} />
         <link rel="stylesheet" href="/assets/main.css" />
       </head>
       <body data-page={name}>

@@ -20,7 +20,8 @@ export type SurveyNewProps = {
 export const SurveyNew = (props: SurveyNewProps): JSX.Element => {
   return (
     <Layout
-      title="Create Survey"
+      title="Create Survey - ClickNPS"
+      description="Create a new NPS survey to start collecting customer feedback and measuring satisfaction."
       name="survey-new"
       auth={props.auth}
       csrfToken={props.csrfToken}

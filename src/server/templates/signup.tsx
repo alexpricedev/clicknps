@@ -19,7 +19,11 @@ export interface SignupProps {
 
 export const Signup = ({ state }: SignupProps) => {
   return (
-    <BaseLayout title="Sign Up - ClickNPS" name="signup">
+    <BaseLayout
+      title="Sign Up - ClickNPS"
+      description="Create your ClickNPS account and start measuring customer satisfaction with NPS surveys."
+      name="signup"
+    >
       <main className="min-h-screen flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="w-full max-w-md mx-auto">
           <div className="text-center mb-8">

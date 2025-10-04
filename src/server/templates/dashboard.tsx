@@ -175,7 +175,13 @@ export const Dashboard = ({
   weeklyNpsData,
   state,
 }: DashboardProps) => (
-  <Layout title="Dashboard" name="dashboard" auth={auth} csrfToken={csrfToken}>
+  <Layout
+    title="Dashboard - ClickNPS"
+    description="View your NPS survey performance, customer feedback, and satisfaction metrics at a glance."
+    name="dashboard"
+    auth={auth}
+    csrfToken={csrfToken}
+  >
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold mb-2">Dashboard</h1>

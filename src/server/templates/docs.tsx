@@ -7,7 +7,13 @@ type DocsProps = {
 };
 
 export const Docs = ({ auth, csrfToken }: DocsProps) => (
-  <Layout title="Documentation" name="docs" auth={auth} csrfToken={csrfToken}>
+  <Layout
+    title="Documentation - ClickNPS"
+    description="Learn how to integrate and use ClickNPS effectively with our comprehensive documentation and guides."
+    name="docs"
+    auth={auth}
+    csrfToken={csrfToken}
+  >
     <div className="hero min-h-screen bg-base-200">
       <div className="hero-content text-center">
         <div className="max-w-md">

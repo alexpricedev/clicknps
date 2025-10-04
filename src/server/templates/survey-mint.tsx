@@ -27,7 +27,8 @@ export type SurveyMintProps = {
 export const SurveyMint = (props: SurveyMintProps): JSX.Element => {
   return (
     <Layout
-      title="Mint Survey Links"
+      title="Mint Survey Links - ClickNPS"
+      description="Generate unique NPS survey links for specific customers or subjects with pre-configured scores."
       name="survey-mint"
       auth={props.auth}
       csrfToken={props.csrfToken}

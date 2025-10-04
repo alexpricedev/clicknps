@@ -41,7 +41,11 @@ export const ThankYouPage = ({
   };
 
   return (
-    <BaseLayout title="Thank You - ClickNPS" name="thank-you">
+    <BaseLayout
+      title="Thank You - ClickNPS"
+      description="Thank you for your feedback. Your response helps us improve our service."
+      name="thank-you"
+    >
       <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl w-full">
           <div className="card bg-neutral text-neutral-content">

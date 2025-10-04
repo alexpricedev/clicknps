@@ -21,7 +21,8 @@ export type ProfileProps = {
 export const Profile = (props: ProfileProps): JSX.Element => {
   return (
     <Layout
-      title="Profile"
+      title="Profile Settings - ClickNPS"
+      description="Update your personal information and account settings."
       name="profile"
       auth={props.auth}
       csrfToken={props.csrfToken}

@@ -10,6 +10,7 @@ export const Home = (props: {
 }) => (
   <Layout
     title="ClickNPS - Simple NPS Surveys"
+    description="Track customer satisfaction with simple NPS surveys. Generate unique survey links, track responses, and measure your Net Promoter Score."
     name="home"
     auth={props.auth}
     csrfToken={props.csrfToken}

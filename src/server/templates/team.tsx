@@ -71,7 +71,13 @@ export const Team = ({
   };
 
   return (
-    <Layout title="Team" name="team" auth={auth} csrfToken={csrfToken}>
+    <Layout
+      title="Team Management - ClickNPS"
+      description="Manage team members, send invitations, and control access to your ClickNPS account."
+      name="team"
+      auth={auth}
+      csrfToken={csrfToken}
+    >
       <div>
         <PageHeader
           title="Team Management"

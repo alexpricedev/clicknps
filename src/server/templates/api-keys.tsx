@@ -49,7 +49,8 @@ export const ApiKeysSettings = (props: ApiKeysSettingsProps): JSX.Element => {
 
   return (
     <Layout
-      title="API Keys - Settings"
+      title="API Keys - ClickNPS"
+      description="Manage API keys for authenticating with the ClickNPS API to programmatically access your surveys and responses."
       name="api-keys"
       auth={props.auth}
       csrfToken={props.csrfToken}

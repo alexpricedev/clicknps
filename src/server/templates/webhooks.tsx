@@ -100,7 +100,8 @@ export const Webhooks = (props: WebhookSettings): JSX.Element => {
 
   return (
     <Layout
-      title="Webhooks - Settings"
+      title="Webhooks - ClickNPS"
+      description="Configure webhook delivery for survey responses to integrate ClickNPS with your existing tools and workflows."
       name="webhooks"
       auth={props.auth}
       csrfToken={props.csrfToken}
