@@ -19,7 +19,8 @@ export const appRoutes = {
   "/": home.index,
   "/about": about.index,
   "/pricing": pricing.index,
-  "/docs": docs.index,
+  "/docs": docs.show,
+  "/docs/*": docs.show,
   "/surveys": createRouteHandler({
     GET: surveys.index,
   }),

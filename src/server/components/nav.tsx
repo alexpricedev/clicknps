@@ -12,6 +12,7 @@ const guestNavLinks = [
 const authNavLinks = [
   { href: "/", label: "Dashboard", name: "dashboard" },
   { href: "/surveys", label: "Surveys", name: "surveys" },
+  { href: "/docs", label: "Docs", name: "docs" },
 ];
 
 const settingsLinks = [
@@ -120,8 +121,8 @@ export const Nav = ({ page, auth, csrfToken }: NavProps) => (
               href={href}
               className={
                 page === name
-                  ? "btn btn-active rounded-btn"
-                  : "btn btn-ghost rounded-btn"
+                  ? "btn btn-ghost text-primary rounded-btn"
+                  : "btn btn-ghost hover:text-primary rounded-btn"
               }
               aria-current={page === name ? "page" : undefined}
             >
