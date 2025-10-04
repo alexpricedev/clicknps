@@ -4,6 +4,7 @@ import { CsrfField } from "./csrf-field";
 
 const guestNavLinks = [
   { href: "/", label: "Home", name: "home" },
+  { href: "/features", label: "Features", name: "features" },
   { href: "/pricing", label: "Pricing", name: "pricing" },
   { href: "/docs", label: "Docs", name: "docs" },
 ];
@@ -57,7 +58,7 @@ export const Nav = ({ page, auth, csrfToken }: NavProps) => (
     </div>
     <div className="flex grow justify-end align-middle">
       {auth?.isAuthenticated ? (
-        <div className="flex items-stretch">
+        <div className="flex items-stretch gap-2">
           {authNavLinks.map(({ href, label, name }) => (
             <a
               key={name}
@@ -112,7 +113,7 @@ export const Nav = ({ page, auth, csrfToken }: NavProps) => (
           </div>
         </div>
       ) : (
-        <div className="flex items-stretch">
+        <div className="flex items-stretch gap-2">
           {guestNavLinks.map(({ href, label, name }) => (
             <a
               key={name}
@@ -127,7 +128,7 @@ export const Nav = ({ page, auth, csrfToken }: NavProps) => (
               {label}
             </a>
           ))}
-          <a href="/login" className="btn btn-outline btn-primary rounded-btn">
+          <a href="/login" className="btn btn-neutral rounded-btn">
             Log in
           </a>
           <a href="/signup" className="btn btn-primary rounded-btn">
