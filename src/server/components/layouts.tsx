@@ -34,6 +34,7 @@ export function Layout({
         />
         <title>{title}</title>
         <meta name="description" content={description} />
+        <link rel="icon" href="/favicon.ico" />
         <link rel="stylesheet" href="/assets/main.css" />
       </head>
       <body data-page={name}>
@@ -75,6 +76,7 @@ export function BaseLayout({
         />
         <title>{title}</title>
         <meta name="description" content={description} />
+        <link rel="icon" href="/favicon.ico" />
         <link rel="stylesheet" href="/assets/main.css" />
       </head>
       <body data-page={name}>
