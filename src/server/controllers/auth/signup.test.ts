@@ -52,6 +52,7 @@ describe("Signup Controller", () => {
       expect(html).toContain('name="email"');
       expect(html).toContain('name="businessName"');
       expect(html).toContain("Create account");
+      expect(html).toContain("Already have an account? Sign in");
     });
 
     test("shows success message when emailSent is true", async () => {

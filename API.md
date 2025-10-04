@@ -50,9 +50,12 @@ Content-Type: application/json
     ...
     "10": "http://localhost:3000/r/xyz789..."
   },
-  "expires_at": "2025-10-19T12:00:00.000Z"
+  "expires_at": "2025-10-19T12:00:00.000Z",
+  "response": null
 }
 ```
+
+**Note:** This endpoint is **idempotent**. Calling it multiple times with the same `survey_id` and `subject_id` will return the same links. The `response` field will be `null` if the subject has not yet responded, or will contain the score (0-10) if they have already submitted a response.
 
 ### 3. Embed in Email
 

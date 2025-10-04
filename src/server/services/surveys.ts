@@ -37,6 +37,7 @@ export interface MintLinksRequest {
 export interface MintLinksResponse {
   links: Record<string, string>; // score -> URL mapping
   expires_at: string;
+  response: number | null; // The score if already responded, null otherwise
 }
 
 export interface SurveyResponse {
@@ -132,23 +133,46 @@ export const createSurvey = async (
 /**
  * Generate unique survey links for all NPS scores (0-10)
  * Each link has a unique token and corresponds to one score
+ * This operation is idempotent - calling it multiple times with the same
+ * survey_id and subject_id returns the same links
  */
 export const mintSurveyLinks = async (
   survey: Survey,
   request: MintLinksRequest,
 ): Promise<MintLinksResponse> => {
   // Check if links already exist for this subject
-  const existingLinks = await db`
-    SELECT COUNT(*) as count 
-    FROM survey_links 
+  const existingLinksResult = await db`
+    SELECT token, score, expires_at
+    FROM survey_links
     WHERE survey_id = ${survey.id} AND subject_id = ${request.subject_id}
-    LIMIT 1
+    ORDER BY score
   `;
 
-  if (Number(existingLinks[0].count) > 0) {
-    throw new Error("Links already exist for this subject");
+  // If links exist, return them (idempotent behavior)
+  if (existingLinksResult.length > 0) {
+    const links: Record<string, string> = {};
+    let expiresAt: Date = new Date();
+
+    for (const link of existingLinksResult) {
+      links[link.score.toString()] =
+        `${process.env.BASE_URL || "http://localhost:3000"}/r/${link.token}`;
+      expiresAt = link.expires_at;
+    }
+
+    // Check if a response exists
+    const existingResponse = await getExistingResponse(
+      survey.id,
+      request.subject_id,
+    );
+
+    return {
+      links,
+      expires_at: expiresAt.toISOString(),
+      response: existingResponse ? existingResponse.score : null,
+    };
   }
 
+  // No existing links - create new ones
   const ttlDays = request.ttl_days || survey.ttl_days;
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + ttlDays);
@@ -192,6 +216,7 @@ export const mintSurveyLinks = async (
   return {
     links,
     expires_at: expiresAt.toISOString(),
+    response: null,
   };
 };
 
