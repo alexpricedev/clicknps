@@ -135,11 +135,13 @@ describe("Home Controller", () => {
       expect(response.headers.get("content-type")).toBe("text/html");
 
       expect(html).toContain(
-        "Track Customer Satisfaction with Simple NPS Surveys",
+        "Bring the voice of the customer into every product decision",
       );
-      expect(html).toContain("ClickNPS makes it easy to collect");
+      expect(html).toContain(
+        "ClickNPS makes it simple for small product teams to collect",
+      );
       expect(html).toContain("Unique Survey Links");
-      expect(html).toContain("Real-time Analytics");
+      expect(html).toContain("Analytics Dashboard");
       expect(html).toContain("Webhook Integration");
     });
 

@@ -1,6 +1,7 @@
 import type React from "react";
 
 import type { AuthContext } from "../middleware/auth";
+import { Footer } from "./footer";
 import { Nav } from "./nav";
 
 type LayoutProps = {
@@ -10,11 +11,13 @@ type LayoutProps = {
   children: React.ReactNode;
   auth?: AuthContext;
   csrfToken?: string | null;
+  containerized?: boolean;
 };
 
 /**
  * Main application layout with header, navigation, and footer
  * Use for: Authenticated app pages, public marketing pages
+ * Set containerized=false for full-width landing pages
  */
 export function Layout({
   title,
@@ -23,7 +26,12 @@ export function Layout({
   children,
   auth,
   csrfToken,
+  containerized = true,
 }: LayoutProps) {
+  const mainClasses = containerized
+    ? "container mx-auto px-4 sm:px-8 pb-8"
+    : "";
+
   return (
     <html lang="en" data-theme="night">
       <head>
@@ -41,7 +49,8 @@ export function Layout({
         <header className="bg-base-300 mb-8 border-b border-base-content/15">
           <Nav page={name} auth={auth} csrfToken={csrfToken} />
         </header>
-        <main className="container mx-auto px-4 sm:px-8 pb-8">{children}</main>
+        <main className={mainClasses}>{children}</main>
+        <Footer auth={auth} />
         <script type="module" src="/assets/main.js" />
       </body>
     </html>
@@ -81,6 +90,7 @@ export function BaseLayout({
       </head>
       <body data-page={name}>
         {children}
+        <Footer />
         <script type="module" src="/assets/main.js" />
       </body>
     </html>

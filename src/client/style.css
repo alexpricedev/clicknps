@@ -60,3 +60,36 @@ body {
   user-select: none;
   pointer-events: none;
 }
+
+/* Shimmer border animation */
+@keyframes shimmer {
+  0% {
+    box-shadow:
+      0 0 0 2px oklch(0.59 0.09 181.911 / 0.4),
+      4px 0 8px -2px oklch(0.78452 0.132 181.911 / 0.8);
+  }
+  25% {
+    box-shadow:
+      0 0 0 2px oklch(0.59 0.09 181.911 / 0.4),
+      0 4px 8px -2px oklch(0.78452 0.132 181.911 / 0.8);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px oklch(0.59 0.09 181.911 / 0.4),
+      -4px 0 8px -2px oklch(0.78452 0.132 181.911 / 0.8);
+  }
+  75% {
+    box-shadow:
+      0 0 0 2px oklch(0.59 0.09 181.911 / 0.4),
+      0 -4px 8px -2px oklch(0.78452 0.132 181.911 / 0.8);
+  }
+  100% {
+    box-shadow:
+      0 0 0 2px oklch(0.59 0.09 181.911 / 0.4),
+      4px 0 8px -2px oklch(0.78452 0.132 181.911 / 0.8);
+  }
+}
+
+.shimmer-border {
+  animation: shimmer 6s linear infinite;
+}

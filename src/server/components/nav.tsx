@@ -4,7 +4,6 @@ import { CsrfField } from "./csrf-field";
 
 const guestNavLinks = [
   { href: "/", label: "Home", name: "home" },
-  { href: "/features", label: "Features", name: "features" },
   { href: "/pricing", label: "Pricing", name: "pricing" },
   { href: "/docs", label: "Docs", name: "docs" },
 ];
