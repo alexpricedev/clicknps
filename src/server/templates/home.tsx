@@ -1,4 +1,5 @@
 import { Layout } from "@server/components/layouts";
+import { WorkflowDiagram } from "@server/components/workflow-diagram";
 import type { AuthContext } from "@server/middleware/auth";
 import type { VisitorStats } from "@server/services/analytics";
 
@@ -94,25 +95,8 @@ export const Home = (props: {
               results in our dashboard or collect responses in your own platform
               via webhooks. No UI lock-in, no forced workflows.
             </p>
-            <div className="bg-base-300 rounded-lg p-12 mt-6 w-full max-w-3xl border border-base-content/10">
-              <div className="text-center text-base-content/50">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-20 w-20 mx-auto mb-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <title>Workflow illustration</title>
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1}
-                    d="M13 10V3L4 14h7v7l9-11h-7z"
-                  />
-                </svg>
-                <p className="text-sm">Workflow / Fabric Illustration</p>
-              </div>
+            <div className="bg-base-300 rounded-lg p-8 md:p-12 mt-6 w-full max-w-4xl border border-base-content/10">
+              <WorkflowDiagram />
             </div>
           </div>
         </div>
