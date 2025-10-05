@@ -1,7 +1,7 @@
 export const WorkflowDiagram = () => (
   <div className="w-full max-w-5xl mx-auto">
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-4">
-      <div className="flex flex-col items-center text-center">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 md:gap-8 lg:gap-4">
+      <div className="flex flex-col items-center text-center relative">
         <div className="relative mb-4">
           <div className="w-20 h-20 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center">
             <svg
@@ -20,13 +20,14 @@ export const WorkflowDiagram = () => (
               />
             </svg>
           </div>
-          <div className="hidden lg:block absolute top-1/2 -right-12 w-12 h-0.5 bg-gradient-to-r from-primary to-primary/30 -translate-y-1/2" />
+          <div className="hidden md:block absolute top-1/2 -right-12 w-12 h-0.5 bg-gradient-to-r from-primary to-primary/30 -translate-y-1/2" />
         </div>
         <h3 className="text-xl font-bold mb-2 text-primary">Mint</h3>
         <p className="text-sm text-base-content/70">Generate links</p>
+        <div className="md:hidden absolute -bottom-12 left-1/2 w-0.5 h-12 bg-gradient-to-b from-primary to-primary/30 -translate-x-1/2" />
       </div>
 
-      <div className="flex flex-col items-center text-center">
+      <div className="flex flex-col items-center text-center relative">
         <div className="relative mb-4">
           <div className="w-20 h-20 rounded-full bg-secondary/20 border-2 border-secondary flex items-center justify-center">
             <svg
@@ -45,13 +46,14 @@ export const WorkflowDiagram = () => (
               />
             </svg>
           </div>
-          <div className="hidden lg:block absolute top-1/2 -right-12 w-12 h-0.5 bg-gradient-to-r from-secondary to-secondary/30 -translate-y-1/2" />
+          <div className="hidden md:block absolute top-1/2 -right-12 w-12 h-0.5 bg-gradient-to-r from-secondary to-secondary/30 -translate-y-1/2" />
         </div>
         <h3 className="text-xl font-bold mb-2 text-secondary">Distribute</h3>
         <p className="text-sm text-base-content/70">Share anywhere</p>
+        <div className="md:hidden absolute -bottom-12 left-1/2 w-0.5 h-12 bg-gradient-to-b from-secondary to-secondary/30 -translate-x-1/2" />
       </div>
 
-      <div className="flex flex-col items-center text-center">
+      <div className="flex flex-col items-center text-center relative">
         <div className="relative mb-4">
           <div className="w-20 h-20 rounded-full bg-accent/20 border-2 border-accent flex items-center justify-center">
             <svg
@@ -70,10 +72,11 @@ export const WorkflowDiagram = () => (
               />
             </svg>
           </div>
-          <div className="hidden lg:block absolute top-1/2 -right-12 w-12 h-0.5 bg-gradient-to-r from-accent to-accent/30 -translate-y-1/2" />
+          <div className="hidden md:block absolute top-1/2 -right-12 w-12 h-0.5 bg-gradient-to-r from-accent to-accent/30 -translate-y-1/2" />
         </div>
         <h3 className="text-xl font-bold mb-2 text-accent">Collect</h3>
         <p className="text-sm text-base-content/70">Capture responses</p>
+        <div className="md:hidden absolute -bottom-12 left-1/2 w-0.5 h-12 bg-gradient-to-b from-accent to-accent/30 -translate-x-1/2" />
       </div>
 
       <div className="flex flex-col items-center text-center">

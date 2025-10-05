@@ -1,3 +1,15 @@
+import {
+  BookOpen,
+  ClipboardList,
+  DollarSign,
+  Home,
+  LogIn,
+  LogOut,
+  Menu,
+  Settings,
+  UserPlus,
+  X,
+} from "lucide-react";
 import { isAdminOrOwner } from "../middleware/access";
 import type { AuthContext } from "../middleware/auth";
 import { CsrfField } from "./csrf-field";
@@ -56,7 +68,9 @@ export const Nav = ({ page, auth, csrfToken }: NavProps) => (
         ClickNPS
       </a>
     </div>
-    <div className="flex grow justify-end align-middle">
+
+    {/* Desktop Navigation */}
+    <div className="hidden lg:flex grow justify-end align-middle">
       {auth?.isAuthenticated ? (
         <div className="flex items-stretch gap-2">
           {authNavLinks.map(({ href, label, name }) => (
@@ -136,6 +150,140 @@ export const Nav = ({ page, auth, csrfToken }: NavProps) => (
           </a>
         </div>
       )}
+    </div>
+
+    {/* Mobile Navigation */}
+    <div className="flex lg:hidden items-center gap-2">
+      {!auth?.isAuthenticated && (
+        <a href="/signup" className="btn btn-primary btn-sm rounded-btn">
+          Sign up free
+        </a>
+      )}
+      <div className="drawer drawer-end">
+        <input
+          id="mobile-nav-drawer"
+          type="checkbox"
+          className="drawer-toggle"
+        />
+        <div className="drawer-content">
+          <label
+            htmlFor="mobile-nav-drawer"
+            className="btn btn-ghost btn-square"
+          >
+            <Menu className="h-5 w-5" />
+          </label>
+        </div>
+        <div className="drawer-side z-50">
+          <label
+            htmlFor="mobile-nav-drawer"
+            aria-label="Close menu"
+            className="drawer-overlay"
+          />
+          <div className="menu bg-base-200 min-h-full w-80 p-4">
+            <div className="flex justify-end items-center mb-4">
+              <label
+                htmlFor="mobile-nav-drawer"
+                className="btn btn-ghost btn-sm btn-circle"
+              >
+                <X className="h-5 w-5" />
+              </label>
+            </div>
+            {auth?.isAuthenticated ? (
+              <ul className="menu text-base w-full p-0 pr-4 [&>li]:mb-2">
+                <li>
+                  <a href="/" className={page === "dashboard" ? "active" : ""}>
+                    <Home className="h-5 w-5" />
+                    Dashboard
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/surveys"
+                    className={page === "surveys" ? "active" : ""}
+                  >
+                    <ClipboardList className="h-5 w-5" />
+                    Surveys
+                  </a>
+                </li>
+                <li>
+                  <a href="/docs" className={page === "docs" ? "active" : ""}>
+                    <BookOpen className="h-5 w-5" />
+                    Docs
+                  </a>
+                </li>
+                <li>
+                  <details>
+                    <summary>
+                      <Settings className="h-5 w-5" />
+                      Settings
+                    </summary>
+                    <ul>
+                      {settingsLinks
+                        .filter(
+                          ({ adminOnly }) =>
+                            !adminOnly || (auth && isAdminOrOwner(auth)),
+                        )
+                        .map(({ href, label }) => (
+                          <li key={href}>
+                            <a href={href}>{label}</a>
+                          </li>
+                        ))}
+                    </ul>
+                  </details>
+                </li>
+                <li>
+                  <form method="POST" action="/auth/logout">
+                    <CsrfField token={csrfToken || null} />
+                    <button
+                      type="submit"
+                      className="w-full text-left flex items-center gap-2"
+                    >
+                      <LogOut className="h-5 w-5" />
+                      Log out
+                    </button>
+                  </form>
+                </li>
+              </ul>
+            ) : (
+              <ul className="menu text-base w-full p-0 pr-4 [&>li]:mb-2">
+                <li>
+                  <a href="/" className={page === "home" ? "active" : ""}>
+                    <Home className="h-5 w-5" />
+                    Home
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/pricing"
+                    className={page === "pricing" ? "active" : ""}
+                  >
+                    <DollarSign className="h-5 w-5" />
+                    Pricing
+                  </a>
+                </li>
+                <li>
+                  <a href="/docs" className={page === "docs" ? "active" : ""}>
+                    <BookOpen className="h-5 w-5" />
+                    Docs
+                  </a>
+                </li>
+                <li>
+                  <a href="/login">
+                    <LogIn className="h-5 w-5" />
+                    Log in
+                  </a>
+                </li>
+                <li>
+                  <a href="/signup">
+                    <UserPlus className="h-5 w-5" />
+                    Sign up free
+                  </a>
+                </li>
+              </ul>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 );

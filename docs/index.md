@@ -83,8 +83,7 @@ Get notified when responses come in:
 ## Need Help?
 
 - 📧 Email: support@clicknps.com
-- 💬 Chat: Available in your dashboard
-- 📚 [Support Center](/settings/support)
+- 📚 [Member Support Center](/settings/support)
 
 ---
 
