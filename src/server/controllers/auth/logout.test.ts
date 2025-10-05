@@ -1,4 +1,12 @@
-import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  mock,
+  test,
+} from "bun:test";
 import { SQL } from "bun";
 import { cleanupTestData } from "../../test-utils/helpers";
 
@@ -25,6 +33,15 @@ import { logout } from "./logout";
 describe("Logout Controller", () => {
   beforeEach(async () => {
     await cleanupTestData(connection);
+  });
+
+  afterEach(async () => {
+    // Ensure any hanging transactions are cleaned up
+    try {
+      await connection`ROLLBACK`;
+    } catch {
+      // Ignore if no transaction is active
+    }
   });
 
   afterAll(async () => {

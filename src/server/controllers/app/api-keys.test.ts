@@ -114,7 +114,7 @@ describe("API Keys Controller", () => {
 
       expect(mockGetApiKeysByBusiness).toHaveBeenCalledWith(businessId);
       expect(response.headers.get("content-type")).toBe("text/html");
-      expect(html).toContain("API Keys - Settings");
+      expect(html).toContain("API Keys - ClickNPS");
       expect(html).toContain("API Keys");
       expect(html).toContain("Test Key");
       expect(html).toContain("ck_••••••••••••••••••••••••••••••••••••••••••••");

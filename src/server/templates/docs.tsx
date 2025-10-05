@@ -1,6 +1,7 @@
 import { Layout } from "@server/components/layouts";
 import type { AuthContext } from "@server/middleware/auth";
 import type { DocNavItem, DocPage } from "@server/services/docs";
+import { slugToLabel } from "@server/utils/text";
 import { FileText, Menu } from "lucide-react";
 
 type DocsProps = {
@@ -13,21 +14,30 @@ type DocsProps = {
 function NavItems({
   items,
   currentSlug,
+  level = 0,
 }: {
   items: DocNavItem[];
   currentSlug: string;
+  level?: number;
 }) {
   return (
-    <ul className="menu">
+    <ul className="menu w-full">
       {items.map((item) => (
-        <li key={item.slug}>
+        <li
+          key={item.slug}
+          className={level === 0 && !item.children ? "mb-2" : ""}
+        >
           {item.children ? (
             <details open>
               <summary>
                 <FileText className="w-4 h-4" />
                 {item.label}
               </summary>
-              <NavItems items={item.children} currentSlug={currentSlug} />
+              <NavItems
+                items={item.children}
+                currentSlug={currentSlug}
+                level={level + 1}
+              />
             </details>
           ) : (
             <a
@@ -80,10 +90,7 @@ export const Docs = ({ auth, csrfToken, page, navigation }: DocsProps) => {
                       <a
                         href={`/docs/${breadcrumbs.slice(0, i + 1).join("/")}`}
                       >
-                        {crumb
-                          .split("-")
-                          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-                          .join(" ")}
+                        {slugToLabel(crumb)}
                       </a>
                     </li>
                   ))}
@@ -105,9 +112,9 @@ export const Docs = ({ auth, csrfToken, page, navigation }: DocsProps) => {
             aria-label="close sidebar"
             className="drawer-overlay"
           />
-          <aside className="bg-base-200 min-h-screen w-80 p-4">
+          <aside className="bg-base-200 min-h-screen w-80 p-4 rounded-2xl">
             <div className="sticky top-4">
-              <div className="flex items-center gap-2 mb-6 px-4">
+              <div className="flex items-center gap-2 mb-4 px-4 pt-4">
                 <FileText className="w-6 h-6 text-primary" />
                 <h2 className="text-xl font-bold">Documentation</h2>
               </div>

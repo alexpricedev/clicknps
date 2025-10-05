@@ -1,4 +1,12 @@
-import { afterAll, beforeEach, describe, expect, it, test } from "bun:test";
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  test,
+} from "bun:test";
 import { randomUUID } from "node:crypto";
 import { SQL } from "bun";
 import { cleanupTestData, createTestBusiness } from "../test-utils/helpers";
@@ -62,6 +70,15 @@ describe("Analytics Service - Dashboard with PostgreSQL", () => {
   beforeEach(async () => {
     await cleanupTestData(connection);
     testBusinessId = await createTestBusiness(connection);
+  });
+
+  afterEach(async () => {
+    // Ensure any hanging transactions are cleaned up
+    try {
+      await connection`ROLLBACK`;
+    } catch {
+      // Ignore if no transaction is active
+    }
   });
 
   afterAll(async () => {

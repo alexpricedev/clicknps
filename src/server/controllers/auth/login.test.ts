@@ -1,4 +1,12 @@
-import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  mock,
+  test,
+} from "bun:test";
 import { SQL } from "bun";
 import {
   cleanupTestData,
@@ -19,6 +27,14 @@ mock.module("../../services/database", () => ({
   },
 }));
 
+// Mock email service
+const mockSendMagicLink = mock(() => Promise.resolve());
+mock.module("../../services/email", () => ({
+  getEmailService: () => ({
+    sendMagicLink: mockSendMagicLink,
+  }),
+}));
+
 import { createUser } from "../../services/auth";
 import { db } from "../../services/database";
 import { login } from "./login";
@@ -26,6 +42,16 @@ import { login } from "./login";
 describe("Login Controller", () => {
   beforeEach(async () => {
     await cleanupTestData(db);
+    mockSendMagicLink.mockClear();
+  });
+
+  afterEach(async () => {
+    // Ensure any hanging transactions are cleaned up
+    try {
+      await connection`ROLLBACK`;
+    } catch {
+      // Ignore if no transaction is active
+    }
   });
 
   afterAll(async () => {

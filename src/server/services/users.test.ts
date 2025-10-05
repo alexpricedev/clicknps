@@ -1,4 +1,12 @@
-import { afterAll, beforeEach, describe, expect, it, mock } from "bun:test";
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  mock,
+} from "bun:test";
 import { randomUUID } from "node:crypto";
 import { SQL } from "bun";
 
@@ -29,6 +37,15 @@ describe("Users Service", () => {
       INSERT INTO users (id, email, business_id)
       VALUES (${testUserId}, 'test@example.com', ${testBusinessId})
     `;
+  });
+
+  afterEach(async () => {
+    // Ensure any hanging transactions are cleaned up
+    try {
+      await connection`ROLLBACK`;
+    } catch {
+      // Ignore if no transaction is active
+    }
   });
 
   afterAll(async () => {

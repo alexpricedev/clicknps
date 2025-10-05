@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, it, mock } from "bun:test";
+import { afterAll, afterEach, describe, expect, it, mock } from "bun:test";
 import { SQL } from "bun";
 
 if (!process.env.DATABASE_URL) {
@@ -15,6 +15,15 @@ mock.module("./database", () => ({
 import { db, testConnection } from "./database";
 
 describe("database service", () => {
+  afterEach(async () => {
+    // Ensure any hanging transactions are cleaned up
+    try {
+      await connection`ROLLBACK`;
+    } catch {
+      // Ignore if no transaction is active
+    }
+  });
+
   afterAll(async () => {
     await connection.end();
     mock.restore();

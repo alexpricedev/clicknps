@@ -1,4 +1,12 @@
-import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  mock,
+  test,
+} from "bun:test";
 import { SQL } from "bun";
 import { cleanupTestData } from "../test-utils/helpers";
 
@@ -20,6 +28,15 @@ import { db } from "./database";
 describe("Business Service with PostgreSQL", () => {
   beforeEach(async () => {
     await cleanupTestData(db);
+  });
+
+  afterEach(async () => {
+    // Ensure any hanging transactions are cleaned up
+    try {
+      await connection`ROLLBACK`;
+    } catch {
+      // Ignore if no transaction is active
+    }
   });
 
   afterAll(async () => {

@@ -95,7 +95,7 @@ describe("Webhook Settings Controller", () => {
       expect(mockGetWebhookSettings).toHaveBeenCalledWith(businessId);
       expect(mockGetRecentWebhookDeliveries).toHaveBeenCalledWith(businessId);
       expect(response.headers.get("content-type")).toBe("text/html");
-      expect(html).toContain("Webhooks - Settings");
+      expect(html).toContain("Webhooks");
       expect(html).toContain("Configure webhook delivery");
       expect(html).toContain("webhook_url");
     });

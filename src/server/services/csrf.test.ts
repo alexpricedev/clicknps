@@ -1,4 +1,12 @@
-import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  mock,
+  test,
+} from "bun:test";
 import { SQL } from "bun";
 import { cleanupTestData } from "../test-utils/helpers";
 import { createSession, createUser } from "./auth";
@@ -24,6 +32,15 @@ mock.module("./database", () => ({
 describe("CSRF Service", () => {
   beforeEach(async () => {
     await cleanupTestData(db);
+  });
+
+  afterEach(async () => {
+    // Ensure any hanging transactions are cleaned up
+    try {
+      await connection`ROLLBACK`;
+    } catch {
+      // Ignore if no transaction is active
+    }
   });
 
   afterAll(async () => {

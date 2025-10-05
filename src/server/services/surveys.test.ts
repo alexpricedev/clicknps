@@ -1,4 +1,11 @@
-import { afterAll, beforeEach, describe, expect, it } from "bun:test";
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+} from "bun:test";
 import { SQL } from "bun";
 import { cleanupTestData, createTestBusiness } from "../test-utils/helpers";
 
@@ -24,6 +31,15 @@ describe("Surveys Service", () => {
   beforeEach(async () => {
     await cleanupTestData(connection);
     testBusinessId = await createTestBusiness(connection);
+  });
+
+  afterEach(async () => {
+    // Ensure any hanging transactions are cleaned up
+    try {
+      await connection`ROLLBACK`;
+    } catch {
+      // Ignore if no transaction is active
+    }
   });
 
   afterAll(async () => {

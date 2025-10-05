@@ -1,4 +1,12 @@
-import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  mock,
+  test,
+} from "bun:test";
 import { SQL } from "bun";
 import { cleanupTestData, randomEmail } from "../../test-utils/helpers";
 
@@ -20,6 +28,15 @@ import { callback } from "./callback";
 describe("Callback Controller", () => {
   beforeEach(async () => {
     await cleanupTestData(db);
+  });
+
+  afterEach(async () => {
+    // Ensure any hanging transactions are cleaned up
+    try {
+      await connection`ROLLBACK`;
+    } catch {
+      // Ignore if no transaction is active
+    }
   });
 
   afterAll(async () => {

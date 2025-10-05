@@ -1,5 +1,6 @@
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
+import { slugToLabel } from "@server/utils/text";
 import { marked } from "marked";
 
 export interface DocPage {
@@ -29,15 +30,6 @@ async function readMarkdownFile(filePath: string): Promise<string> {
 function extractTitle(markdown: string): string {
   const match = markdown.match(/^#\s+(.+)$/m);
   return match ? match[1].trim() : "Untitled";
-}
-
-function slugToLabel(slug: string): string {
-  const parts = slug.split("/").filter(Boolean);
-  const lastPart = parts[parts.length - 1] || slug;
-  return lastPart
-    .split("-")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
 }
 
 export async function getDocPage(slug: string): Promise<DocPage | null> {

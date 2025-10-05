@@ -1,4 +1,12 @@
-import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  mock,
+  test,
+} from "bun:test";
 import { SQL } from "bun";
 import { createSession, createUser } from "../../services/auth";
 import { createBunRequest } from "../../test-utils/bun-request";
@@ -101,6 +109,15 @@ describe("Home Controller", () => {
     mockGetDashboardStats.mockClear();
     mockGetLatestResponses.mockClear();
     mockGetWeeklyNpsData.mockClear();
+  });
+
+  afterEach(async () => {
+    // Ensure any hanging transactions are cleaned up
+    try {
+      await connection`ROLLBACK`;
+    } catch {
+      // Ignore if no transaction is active
+    }
   });
 
   afterAll(async () => {

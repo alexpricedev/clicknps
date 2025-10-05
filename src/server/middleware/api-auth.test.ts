@@ -1,4 +1,12 @@
-import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  mock,
+  test,
+} from "bun:test";
 import { SQL } from "bun";
 import { cleanupTestData, createTestBusiness } from "../test-utils/helpers";
 
@@ -23,6 +31,15 @@ describe("API Auth Middleware", () => {
   beforeEach(async () => {
     await cleanupTestData(db);
     testBusinessId = await createTestBusiness(connection, "Test API Business");
+  });
+
+  afterEach(async () => {
+    // Ensure any hanging transactions are cleaned up
+    try {
+      await connection`ROLLBACK`;
+    } catch {
+      // Ignore if no transaction is active
+    }
   });
 
   afterAll(async () => {
