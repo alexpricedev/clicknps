@@ -36,16 +36,10 @@ export const Login = ({ state }: LoginProps) => {
                   icon={<CheckCircle className="w-6 h-6" />}
                   title="Check your email!"
                   description={
-                    <>
-                      <p className="mt-1">
-                        We've sent you a magic link. Click it to sign in
-                        instantly.
-                      </p>
-                      <p className="mt-2 text-xs opacity-70">
-                        For testing: Check the server console for the magic
-                        link.
-                      </p>
-                    </>
+                    <p className="mt-1">
+                      We've sent you a magic link. Click it to sign in
+                      instantly.
+                    </p>
                   }
                   dismissible={false}
                 />

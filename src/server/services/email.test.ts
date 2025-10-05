@@ -49,8 +49,8 @@ describe("Email Service", () => {
 
       expect(message.to).toEqual(data.to);
       expect(message.subject).toBe("Sign in to ClickNPS");
-      expect(message.from.email).toBe("test@test.com");
-      expect(message.from.name).toBe("Test");
+      expect(message.from.email).toBe(process.env.FROM_EMAIL || "");
+      expect(message.from.name).toBe(process.env.FROM_NAME || "");
     });
 
     test("includes magic link URL in HTML content", async () => {
@@ -138,8 +138,8 @@ describe("Email Service", () => {
       expect(message.subject).toBe(
         "You've been invited to join Acme Corp on ClickNPS",
       );
-      expect(message.from.email).toBe("test@test.com");
-      expect(message.from.name).toBe("Test");
+      expect(message.from.email).toBe(process.env.FROM_EMAIL || "");
+      expect(message.from.name).toBe(process.env.FROM_NAME || "");
     });
 
     test("includes invite details in HTML for member role", async () => {
@@ -277,6 +277,29 @@ describe("Email Service", () => {
 
       const retrievedService = getEmailService();
       expect(retrievedService).toBe(customService);
+    });
+
+    test("uses console provider by default", () => {
+      const service = getEmailService();
+      expect(service).toBeDefined();
+    });
+
+    test("throws error when resend provider is selected but API key is missing", () => {
+      const originalProvider = process.env.EMAIL_PROVIDER;
+      const originalApiKey = process.env.RESEND_API_KEY;
+
+      process.env.EMAIL_PROVIDER = "resend";
+      delete process.env.RESEND_API_KEY;
+
+      setEmailService(null as unknown as EmailService);
+
+      expect(() => getEmailService()).toThrow(
+        "RESEND_API_KEY environment variable is required when EMAIL_PROVIDER=resend",
+      );
+
+      process.env.EMAIL_PROVIDER = originalProvider;
+      process.env.RESEND_API_KEY = originalApiKey;
+      setEmailService(null as unknown as EmailService);
     });
   });
 

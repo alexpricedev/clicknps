@@ -41,16 +41,10 @@ export const Signup = ({ state }: SignupProps) => {
                   icon={<CheckCircle className="w-6 h-6" />}
                   title="Check your email!"
                   description={
-                    <>
-                      <p className="mt-1">
-                        We've sent you a magic link. Click it to complete your
-                        account setup.
-                      </p>
-                      <p className="mt-2 text-xs opacity-70">
-                        For testing: Check the server console for the magic
-                        link.
-                      </p>
-                    </>
+                    <p className="mt-1">
+                      We've sent you a magic link. Click it to complete your
+                      account setup.
+                    </p>
                   }
                   dismissible={false}
                 />

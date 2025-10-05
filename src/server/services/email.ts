@@ -279,9 +279,21 @@ let emailServiceInstance: EmailService | null = null;
 
 export const getEmailService = (): EmailService => {
   if (!emailServiceInstance) {
-    const ConsoleLogProvider =
-      require("./email-providers/console").ConsoleLogProvider;
-    emailServiceInstance = new EmailService(new ConsoleLogProvider());
+    const emailProvider = process.env.EMAIL_PROVIDER || "console";
+
+    if (emailProvider === "resend") {
+      const apiKey = process.env.RESEND_API_KEY;
+      if (!apiKey) {
+        throw new Error(
+          "RESEND_API_KEY environment variable is required when EMAIL_PROVIDER=resend",
+        );
+      }
+      const { ResendProvider } = require("./email-providers/resend");
+      emailServiceInstance = new EmailService(new ResendProvider(apiKey));
+    } else {
+      const { ConsoleLogProvider } = require("./email-providers/console");
+      emailServiceInstance = new EmailService(new ConsoleLogProvider());
+    }
   }
   return emailServiceInstance;
 };
