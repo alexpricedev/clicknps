@@ -43,6 +43,7 @@ const mockGetApiKeysByBusiness = mock(() => [
   {
     id: "key-123",
     business_id: "business-123",
+    key_preview: "ck_abcde",
     name: "Test Key",
     last_used_at: null,
     created_at: new Date(),
@@ -97,6 +98,7 @@ describe("API Keys Controller", () => {
         {
           id: "key-123",
           business_id: businessId,
+          key_preview: "ck_abcde",
           name: "Test Key",
           last_used_at: null,
           created_at: new Date(),
@@ -117,7 +119,9 @@ describe("API Keys Controller", () => {
       expect(html).toContain("API Keys - ClickNPS");
       expect(html).toContain("API Keys");
       expect(html).toContain("Test Key");
-      expect(html).toContain("ck_••••••••••••••••••••••••••••••••••••••••••••");
+      expect(html).toContain(
+        "ck_abcde•••••••••••••••••••••••••••••••••••••••••••",
+      );
       expect(html).toContain("list bg-neutral");
       expect(html).toContain("btn btn-sm");
     });
@@ -362,6 +366,7 @@ describe("API Keys Controller", () => {
       const testApiKey = {
         id: "key-123",
         business_id: businessId,
+        key_preview: "ck_abcde",
         name: "Test Key",
         last_used_at: null,
         created_at: new Date(),
@@ -442,6 +447,7 @@ describe("API Keys Controller", () => {
       const testApiKey = {
         id: "key-123",
         business_id: businessId,
+        key_preview: "ck_abcde",
         name: "Test Key",
         last_used_at: null,
         created_at: new Date(),
@@ -568,6 +574,7 @@ describe("API Keys Controller", () => {
       const testApiKey = {
         id: "key-123",
         business_id: businessId,
+        key_preview: "ck_abcde",
         name: "Test Key",
         last_used_at: null,
         created_at: new Date(),

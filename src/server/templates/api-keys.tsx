@@ -18,6 +18,7 @@ import type { AuthContext } from "../middleware/auth";
 export interface ApiKey {
   id: string;
   business_id: string;
+  key_preview: string;
   name: string;
   last_used_at: Date | null;
   created_at: Date;
@@ -33,8 +34,8 @@ export interface ApiKeysSettingsProps {
 export const ApiKeysSettings = (props: ApiKeysSettingsProps): JSX.Element => {
   const { apiKeys, state, csrfToken } = props;
 
-  const formatKeyDisplay = (_key: ApiKey) => {
-    return `ck_${"•".repeat(44)}`;
+  const formatKeyDisplay = (key: ApiKey) => {
+    return `${key.key_preview}${"•".repeat(43)}`;
   };
 
   const formatDate = (date: Date | string) => {

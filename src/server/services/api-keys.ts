@@ -10,6 +10,7 @@ export interface ApiKey {
   id: string;
   business_id: string;
   key_hash: string;
+  key_preview: string;
   name: string;
   last_used_at: Date | null;
   created_at: Date;
@@ -34,10 +35,11 @@ export const createApiKey = async (
   const id = randomUUID();
   const token = `ck_${generateSecureToken(48)}`; // ck_ prefix for "clicknps"
   const keyHash = computeHMAC(token);
+  const keyPreview = token.substring(0, 8); // "ck_" + first 5 chars
 
   const result = await db`
-    INSERT INTO api_keys (id, business_id, key_hash, name) 
-    VALUES (${id}, ${businessId}, ${keyHash}, ${name})
+    INSERT INTO api_keys (id, business_id, key_hash, key_preview, name)
+    VALUES (${id}, ${businessId}, ${keyHash}, ${keyPreview}, ${name})
     RETURNING id, business_id, name, created_at
   `;
 
@@ -64,8 +66,8 @@ export const findApiKeyByToken = async (
     const keyHash = computeHMAC(token);
 
     const result = await db`
-      SELECT id, business_id, key_hash, name, last_used_at, created_at
-      FROM api_keys 
+      SELECT id, business_id, key_hash, key_preview, name, last_used_at, created_at
+      FROM api_keys
       WHERE key_hash = ${keyHash}
     `;
 
@@ -95,8 +97,8 @@ export const getApiKeysByBusiness = async (
   businessId: string,
 ): Promise<Omit<ApiKey, "key_hash">[]> => {
   const result = await db`
-    SELECT id, business_id, name, last_used_at, created_at
-    FROM api_keys 
+    SELECT id, business_id, key_preview, name, last_used_at, created_at
+    FROM api_keys
     WHERE business_id = ${businessId}
     ORDER BY created_at DESC
   `;

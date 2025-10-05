@@ -70,6 +70,8 @@ describe("API Keys Service with PostgreSQL", () => {
       expect(dbKeys[0].name).toBe(keyName);
       expect(dbKeys[0].key_hash).toBeDefined();
       expect(dbKeys[0].key_hash).not.toBe(apiKey.token); // Hash should be different from token
+      expect(dbKeys[0].key_preview).toBe(apiKey.token.substring(0, 8)); // "ck_" + first 5 chars
+      expect(dbKeys[0].key_preview).toStartWith("ck_");
     });
 
     it("should create unique tokens for each key", async () => {
@@ -201,11 +203,14 @@ describe("API Keys Service with PostgreSQL", () => {
       expect(keys[1].name).toBe("Second Key");
       expect(keys[2].name).toBe("First Key");
 
-      // Should not include key_hash or token
+      // Should not include key_hash or token but should include key_preview
       keys.forEach((key) => {
         expect(key.id).toBeDefined();
         expect(key.business_id).toBe(testBusinessId);
         expect(key.name).toBeDefined();
+        expect(key.key_preview).toBeDefined();
+        expect(key.key_preview).toHaveLength(8);
+        expect(key.key_preview).toStartWith("ck_");
         expect(key.created_at).toBeInstanceOf(Date);
         expect("key_hash" in key).toBe(false);
         expect("token" in key).toBe(false);
