@@ -1,3 +1,9 @@
+
+### ⚡️ Built with [SpeedLoaf](https://github.com/alexpricedev/SpeedLoaf)
+**This is a real-world example of a full-stack server-rendered app powered by Bun.** No bloat. No client-side framework. Just fast, modern standards-first web development.
+
+---
+
 # ClickNPS
 
 **Get more NPS responses with one-click email surveys.**
